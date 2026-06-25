@@ -1,0 +1,34 @@
+{
+  "id": "hd10",
+  "district_code": "010",
+  "district_label": "House District 10",
+  "chamber": "state_house",
+  "candidate": "Chris Tierrini",
+  "party": "R",
+  "posture": "offense",
+  "headline": "HD 10 · Tierrini",
+  "tagline": "Open-seat pickup opportunity — East Hartford",
+  "accent": "#C07A24",
+  "accent_soft": "#EAD6B4",
+  "accent_deep": "#8A551A",
+  "core_towns": ["East Hartford"],
+  "town_aliases": {
+    "East Harford": "East Hartford",
+    "E Hartford": "East Hartford",
+    "Easthartford": "East Hartford",
+    "East Hartford Ct": "East Hartford",
+    "Harttford": "East Hartford"
+  },
+  "posture_copy": {
+    "mission": "Contest an open Democratic-held seat where the long-time incumbent is not running.",
+    "frame": "Pickup",
+    "primary_metric": "Republican opportunity to build",
+    "questions": [
+      "Where is the realistic path to flipping the seat?",
+      "Which precincts show the greatest Republican opportunity?",
+      "Where are high-value unaffiliated and turnout opportunities?",
+      "What voter data is still missing before a final walk plan?"
+    ]
+  },
+  "newly_registered_since": "2024-11-06"
+}
