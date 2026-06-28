@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>HD 10 Battle Map · DM Strategies</title>
+<title>HD 10 Intelligence · DM Strategies</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -14,11 +14,10 @@
 :root{
   --navy:#06111F; --navy-mid:#0C1D34; --navy-card:#0F2140; --navy-deep:#040C16; --navy-tile:#091522;
   --fg:#EEF3FB; --fg-muted:#7C93AC; --fg-dim:#4A5E76;
-  --teal:#1A8B9A; --teal-lt:#22AABC; --gold:#D4A017; --gold-lt:#F0B82A; --brand-gold:#F2A900;
-  --dem:#3A6AB8; --rep:#E05555; --npa:#7C3AED; --npa-lt:#A78BFA;
+  --teal:#1A8B9A; --teal-lt:#22AABC; --gold:#D4A017; --gold-lt:#F0B82A;
+  --dem:#3A6AB8; --rep:#E05555; --npa:#7C3AED; --npa-lt:#A78BFA; --good:#34D399;
   --border:rgba(255,255,255,.08); --border-lt:rgba(255,255,255,.16);
-  --disp:'Tungsten','Barlow Condensed',sans-serif; --body:'Outfit',system-ui,sans-serif;
-  --r:10px;
+  --disp:'Tungsten','Barlow Condensed',sans-serif; --body:'Outfit',system-ui,sans-serif; --r:10px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -29,28 +28,34 @@ body{font-family:var(--body);color:var(--fg);font-size:14px;-webkit-font-smoothi
 .wrap{max-width:1320px;margin:0 auto;padding:0 26px}
 
 header{height:62px;display:flex;align-items:center;gap:16px;padding:0 26px;background:linear-gradient(180deg,var(--navy-deep),var(--navy));
-  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;overflow:hidden}
+  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:60;overflow:hidden}
 header::before{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(124,58,237,.6),transparent)}
-.logo{display:flex;align-items:center;gap:10px}
 .logo svg{filter:drop-shadow(0 2px 6px rgba(210,177,110,.2))}
 .hdiv{width:1px;height:28px;background:var(--border-lt)}
 .htitle{font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:2px;text-transform:uppercase}
 .htitle b{color:var(--gold-lt)}
 .hmeta{margin-left:auto;display:flex;gap:8px;align-items:center}
-.chip{font-family:var(--disp);font-weight:600;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:5px 11px;border-radius:6px;
-  background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--fg-muted)}
+.chip{font-family:var(--disp);font-weight:600;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:5px 11px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--fg-muted)}
 .chip.live{color:var(--gold-lt);background:rgba(212,160,23,.1);border-color:rgba(212,160,23,.3)}
 
-.hero{display:grid;grid-template-columns:1fr 360px;gap:16px;padding:26px 0 0}
-.maptitle{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
-.maptitle h1{font-family:var(--disp);font-weight:700;font-size:34px;letter-spacing:.5px;text-transform:uppercase;line-height:1}
+.tabs{display:flex;gap:2px;padding:0 26px;background:rgba(7,17,30,.6);border-bottom:1px solid var(--border);position:sticky;top:62px;z-index:55;backdrop-filter:blur(8px)}
+.tab{font-family:var(--disp);font-weight:600;font-size:15px;letter-spacing:2px;text-transform:uppercase;padding:14px 18px;color:var(--fg-muted);cursor:pointer;border-bottom:3px solid transparent;transition:.15s;white-space:nowrap}
+.tab:hover{color:var(--fg)}
+.tab.on{color:var(--teal-lt);border-color:var(--gold)}
+.panel{display:none}
+.panel.on{display:block;animation:fade .3s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.ptitle{display:flex;align-items:baseline;justify-content:space-between;margin:26px 0 12px;flex-wrap:wrap;gap:8px}
+.ptitle h1{font-family:var(--disp);font-weight:700;font-size:34px;letter-spacing:.5px;text-transform:uppercase;line-height:1}
+
+.hero{display:grid;grid-template-columns:1fr 360px;gap:16px}
 .mapcard{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);padding:8px;position:relative;box-shadow:0 18px 40px -28px #000}
-#map{height:62vh;min-height:440px;border-radius:7px;background:var(--navy-tile)}
-.seg{position:absolute;top:18px;left:18px;z-index:500;display:inline-flex;border:1px solid var(--border-lt);border-radius:7px;overflow:hidden;background:rgba(6,17,31,.85);backdrop-filter:blur(6px)}
+.lmap{height:60vh;min-height:430px;border-radius:7px;background:var(--navy-tile)}
+.seg{position:absolute;top:18px;left:18px;z-index:500;display:inline-flex;border:1px solid var(--border-lt);border-radius:7px;overflow:hidden;background:rgba(6,17,31,.85);backdrop-filter:blur(6px);flex-wrap:wrap}
 .seg button{font-family:var(--disp);font-weight:600;font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:8px 13px;color:var(--fg-muted);background:none;border:0;border-right:1px solid var(--border);cursor:pointer;transition:.12s}
 .seg button:last-child{border-right:0}
-.seg button:hover{color:var(--fg)}
-.seg button.on{background:var(--npa);color:#fff}
+.seg button:hover{color:var(--fg)} .seg button.on{background:var(--npa);color:#fff}
 .maplegend{position:absolute;bottom:18px;left:18px;z-index:500;background:rgba(6,17,31,.88);border:1px solid var(--border);border-radius:8px;padding:11px 13px;backdrop-filter:blur(6px)}
 .maplegend .kick{margin-bottom:7px}
 .maplegend .row{display:flex;align-items:center;gap:8px;font-size:11.5px;margin-bottom:4px;color:var(--fg)}
@@ -58,24 +63,24 @@ header::before{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;b
 .leaflet-container{background:var(--navy-tile)!important;font-family:var(--body)!important}
 .leaflet-tooltip{background:rgba(6,17,31,.96)!important;border:1px solid var(--border-lt)!important;color:var(--fg)!important;box-shadow:0 6px 18px rgba(0,0,0,.5)!important;border-radius:8px!important;padding:8px 11px!important}
 .leaflet-tooltip::before{display:none}
-.plabel{font-family:var(--disp);font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.85);font-size:13px;text-align:center;pointer-events:none}
+.plabel{font-family:var(--disp);font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.85);font-size:13px;text-align:center}
+.plabel-wrap{background:none!important;border:0!important;box-shadow:none!important;padding:0!important}
 
 .side{display:flex;flex-direction:column;gap:14px}
 .bigstat{background:linear-gradient(160deg,rgba(124,58,237,.16),rgba(15,33,64,.5));border:1px solid rgba(124,58,237,.34);border-radius:var(--r);padding:20px}
-.bigstat .v{font-family:var(--disp);font-weight:700;font-size:60px;line-height:.92;color:var(--npa-lt)}
+.bigstat .v{font-family:var(--disp);font-weight:700;font-size:58px;line-height:.92;color:var(--npa-lt)}
 .bigstat .l{font-family:var(--disp);font-weight:600;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--fg);margin-top:6px}
 .bigstat .s{font-size:12.5px;color:var(--fg-muted);margin-top:5px;line-height:1.45}
 .pdetail{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);padding:18px;flex:1}
 .pdetail .top{display:flex;align-items:baseline;justify-content:space-between}
-.pdetail .pn{font-family:var(--disp);font-weight:700;font-size:24px;letter-spacing:.5px}
+.pn{font-family:var(--disp);font-weight:700;font-size:24px;letter-spacing:.5px}
 .role{font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:4px 9px;border-radius:5px}
 .bars{margin-top:14px;display:flex;flex-direction:column;gap:9px}
-.bar .bt{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
-.bar .bt b{font-family:var(--disp);font-size:13px}
-.track{height:8px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden}
-.track>i{display:block;height:100%;border-radius:4px}
+.bar .bt{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px} .bar .bt b{font-family:var(--disp);font-size:13px}
+.track{height:8px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden} .track>i{display:block;height:100%;border-radius:4px}
+.dstat{display:flex;justify-content:space-between;margin-top:10px;font-size:12px} .dstat span{color:var(--fg-muted)} .dstat b{font-family:var(--disp);font-size:13px}
 
-section.block{padding:30px 0 0}
+.block{padding:30px 0 0}
 .shead{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .shead .t{font-family:var(--disp);font-weight:700;font-size:14px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold-lt)}
 .shead .ln{flex:1;height:1px;background:var(--border)}
@@ -93,24 +98,40 @@ section.block{padding:30px 0 0}
 .play{display:flex;gap:16px;background:linear-gradient(160deg,rgba(15,33,64,.55),rgba(10,24,40,.4));border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
 .play .n{font-family:var(--disp);font-weight:700;font-size:34px;line-height:1;color:var(--gold);flex-shrink:0;width:34px}
 .play h3{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
-.play p{font-size:13px;color:var(--fg-muted);line-height:1.5}
-.play p b{color:var(--fg);font-weight:600}
+.play p{font-size:13px;color:var(--fg-muted);line-height:1.5} .play p b{color:var(--fg);font-weight:600}
 
 .pcards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .pc{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;cursor:pointer;transition:.15s;border-top:3px solid var(--fg-dim)}
 .pc:hover{transform:translateY(-3px);border-color:var(--border-lt)}
-.pc .pch{display:flex;align-items:center;justify-content:space-between}
-.pc .pcn{font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:.5px}
-.pc .pcv{font-family:var(--disp);font-weight:700;font-size:34px;margin-top:10px}
-.pc .pcl{font-size:11.5px;color:var(--fg-muted);margin-top:2px}
-.pc .mini{display:flex;height:7px;border-radius:4px;overflow:hidden;margin-top:14px}
-.pc .stat{display:flex;justify-content:space-between;margin-top:10px;font-size:12px}
-.pc .stat span{color:var(--fg-muted)} .pc .stat b{font-family:var(--disp);font-size:13px}
+.pch{display:flex;align-items:center;justify-content:space-between} .pcn{font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:.5px}
+.pcv{font-family:var(--disp);font-weight:700;font-size:34px;margin-top:10px} .pcl{font-size:11.5px;color:var(--fg-muted);margin-top:2px}
+.mini{display:flex;height:7px;border-radius:4px;overflow:hidden;margin-top:14px}
 
-footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6}
-footer b{color:var(--fg-muted)}
+/* issues */
+.ichips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.ichip{font-family:var(--disp);font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:9px 15px;border-radius:8px;color:var(--fg-muted);background:var(--navy-card);border:1px solid var(--border);cursor:pointer;transition:.12s}
+.ichip:hover{color:var(--fg);border-color:var(--border-lt)}
+.ichip.on{color:#06111F;background:var(--gold-lt);border-color:var(--gold-lt)}
+.matrix{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.mrow{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;align-items:stretch;border-bottom:1px solid var(--border)}
+.mrow:last-child{border-bottom:0}
+.mrow.head .mc{font-family:var(--disp);font-weight:600;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--fg-muted);background:rgba(0,0,0,.2)}
+.mc{padding:13px 15px;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center}
+.mc:last-child{border-right:0}
+.mc .iname{font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:.4px}
+.mc .iaud{font-size:11px;color:var(--fg-muted);margin-top:2px}
+.mc.cell{position:relative}
+.mc.cell .cv{font-family:var(--disp);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums;position:relative;z-index:1}
+.mc.cell .cs{font-size:10.5px;color:var(--fg-muted);position:relative;z-index:1}
+.mc.cell .fillbg{position:absolute;left:0;top:0;bottom:0;background:rgba(124,58,237,.22)}
+.mc.cell.best .cv{color:var(--gold-lt)}
+.istat{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
 
-@media(max-width:980px){.hero{grid-template-columns:1fr}.tgrid{grid-template-columns:repeat(2,1fr)}.plays{grid-template-columns:1fr}.pcards{grid-template-columns:1fr}#map{height:48vh}}
+footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} footer b{color:var(--fg-muted)}
+.note{background:rgba(34,170,188,.07);border:1px solid rgba(34,170,188,.22);border-radius:8px;padding:11px 14px;font-size:12px;color:var(--fg-muted);margin-top:16px;line-height:1.5}
+.note b{color:var(--fg)}
+
+@media(max-width:980px){.hero{grid-template-columns:1fr}.tgrid{grid-template-columns:repeat(2,1fr)}.plays{grid-template-columns:1fr}.pcards{grid-template-columns:1fr}.istat{grid-template-columns:1fr}.lmap{height:46vh}}
 </style>
 </head>
 <body>
@@ -131,46 +152,58 @@ footer b{color:var(--fg-muted)}
   </div>
 </header>
 
+<div class="tabs">
+  <div class="tab on" data-tab="map">Battle Map</div>
+  <div class="tab" data-tab="issues">Issues</div>
+  <div class="tab" data-tab="play">Strategy</div>
+</div>
+
 <div class="wrap">
-  <div class="hero">
-    <div>
-      <div class="maptitle"><h1>The Battle Map</h1><span class="kick">3 precincts · click to focus</span></div>
-      <div class="mapcard">
-        <div class="seg" id="seg"></div>
-        <div id="map"></div>
-        <div class="maplegend" id="legend"></div>
+
+  <!-- BATTLE MAP -->
+  <div class="panel on" id="tab-map">
+    <div class="ptitle"><h1>The Battle Map</h1><span class="kick">3 precincts · click to focus</span></div>
+    <div class="hero">
+      <div class="mapcard"><div class="seg" id="seg"></div><div class="lmap" id="map"></div><div class="maplegend" id="legend"></div></div>
+      <div class="side">
+        <div class="bigstat"><div class="v" id="bs-v">—</div><div class="l">Unaffiliated voters</div><div class="s" id="bs-s">—</div></div>
+        <div class="pdetail" id="pdetail"></div>
       </div>
     </div>
-    <div class="side">
-      <div class="bigstat">
-        <div class="v" id="bs-v">—</div>
-        <div class="l" id="bs-l">Unaffiliated voters</div>
-        <div class="s" id="bs-s">—</div>
+    <div class="block"><div class="shead"><span class="t">The Numbers That Matter</span><span class="ln"></span></div><div class="tgrid" id="takeaways"></div></div>
+    <div class="block"><div class="shead"><span class="t">Precinct by Precinct</span><span class="ln"></span></div><div class="pcards" id="pcards"></div></div>
+  </div>
+
+  <!-- ISSUES -->
+  <div class="panel" id="tab-issues">
+    <div class="ptitle"><h1>Issue Battlefield</h1><span class="kick">message audiences by precinct</span></div>
+    <div class="ichips" id="ichips"></div>
+    <div class="hero">
+      <div class="mapcard"><div class="lmap" id="imap"></div><div class="maplegend" id="ilegend"></div></div>
+      <div class="side">
+        <div class="bigstat" style="background:linear-gradient(160deg,rgba(212,160,23,.16),rgba(15,33,64,.5));border-color:rgba(212,160,23,.34)">
+          <div class="v" id="is-v" style="color:var(--gold-lt)">—</div><div class="l" id="is-l">—</div><div class="s" id="is-s">—</div></div>
+        <div class="pdetail" id="idetail"></div>
       </div>
-      <div class="pdetail" id="pdetail"></div>
+    </div>
+    <div class="block"><div class="shead"><span class="t">Find It By Precinct</span><span class="ln"></span></div>
+      <div class="matrix" id="matrix"></div>
+      <div class="note" id="inote"></div>
     </div>
   </div>
 
-  <section class="block">
-    <div class="shead"><span class="t">The Numbers That Matter</span><span class="ln"></span></div>
-    <div class="tgrid" id="takeaways"></div>
-  </section>
-
-  <section class="block">
-    <div class="shead"><span class="t">The Play</span><span class="ln"></span></div>
-    <div class="plays" id="plays"></div>
-  </section>
-
-  <section class="block">
-    <div class="shead"><span class="t">Precinct by Precinct</span><span class="ln"></span></div>
-    <div class="pcards" id="pcards"></div>
-  </section>
+  <!-- STRATEGY -->
+  <div class="panel" id="tab-play">
+    <div class="ptitle"><h1>How He Wins</h1><span class="kick">a republican path in a blue town</span></div>
+    <div class="tgrid" id="winstat" style="margin-bottom:8px"></div>
+    <div class="block"><div class="shead"><span class="t">The Play</span><span class="ln"></span></div><div class="plays" id="plays"></div></div>
+  </div>
 
   <footer id="foot"></footer>
 </div>
 
 <script src="assets/leaflet.js"></script>
-<script src="data/hd10.js?v=1"></script>
-<script src="app.js?v=1"></script>
+<script src="data/hd10.js?v=2"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
