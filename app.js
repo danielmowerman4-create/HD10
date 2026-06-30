@@ -298,58 +298,72 @@ function download(name, rows) {
 /* ════════════════════ VOTERS ════════════════════ */
 function renderVoters() {
   const ut = TG ? TG.universe_turnout : null;
+
+  // funnel: where the universe comes from (narrowing), final step emphasized
   const funnel = [
     [C.demLt, T.active, "All Active Voters", "Every active HD-10 registrant."],
-    [C.goldLt, TURNOUT_UNIVERSE, "Turnout Universe", "Projected to vote in the 2026 election."],
-    [C.tealLt, OUR_UNIVERSE, "Our Target Universe", "Our voters who are already likely to turn out."],
+    [C.goldLt, TURNOUT_UNIVERSE, "Likely to Vote in 2026", `Projected to cast a ballot — ${pct(TURNOUT_UNIVERSE, T.active)}% of active voters.`],
+    [C.tealLt, OUR_UNIVERSE, "Our Targets", `The likely voters we work — ${pct(OUR_UNIVERSE, TURNOUT_UNIVERSE)}% of the 2026 electorate.`],
   ];
-  const segKeys = TG ? Object.keys(TG.segments) : [];
+
+  // propensity tiers — these THREE add up to the whole universe
+  const tiers = ut ? [
+    ["var(--teal-lt)", ut.locked.n, ut.locked.pct, "Reliable", "voted 3–4 of the last 4 generals"],
+    ["var(--gold-lt)", ut.mid.n, ut.mid.pct, "Likely · 2-of", "two of the last 3/4, incl. a midterm or ’22+’24"],
+    ["var(--npa-lt)", ut.low.n, ut.low.pct, "New movers", "recent registrants who voted the 2025 locals"],
+  ] : [];
+  const stack = tiers.map(([c, n, p, l]) =>
+    `<span style="flex:0 0 ${p}%;background:${c};height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--ff-display);font-weight:700;font-size:12px;color:#06111F">${p >= 8 ? p + "%" : ""}</span>`).join("");
+  const tierRows = tiers.map(([c, n, p, l, s]) =>
+    `<div class="drow"><span class="l"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${c};margin-right:9px;vertical-align:-1px"></span><b style="color:var(--fg);font-weight:600">${l}</b> — ${s}</span><span class="v">${fmt(n)} · ${p}%</span></div>`).join("");
+
+  // who they are
+  const pr = TG ? TG.party_pct : { U: 0, R: 0 };
+  const bar = (label, val, p, col) =>
+    `<div class="bar"><div class="bar-top"><span>${label}</span><b>${fmt(val)} · ${p}%</b></div><div class="track"><i style="width:${p}%;background:${col}"></i></div></div>`;
+
+  // where they are
+  const precs = TG && TG.precinct ? Object.values(TG.precinct).sort((a, b) => b.target - a.target) : [];
+  const maxT = precs.length ? Math.max(...precs.map(p => p.target)) : 1;
+  const precRows = precs.map(p =>
+    `<div class="bar"><div class="bar-top"><span>${p.name}</span><b>${fmt(p.target)} <span style="color:var(--fg-muted);font-weight:400">of ${fmt(p.likely_voters)} likely</span></b></div><div class="track"><i style="width:${Math.round(100 * p.target / maxT)}%;background:var(--teal-lt)"></i></div></div>`).join("");
+
+  // how we reach them — overlapping segments, sorted, as comparable bars
+  const segs = TG ? Object.entries(TG.segments).sort((a, b) => b[1].n - a[1].n) : [];
+  const segRows = segs.map(([k, s]) =>
+    `<div class="bar"><div class="bar-top"><span>${s.label}</span><b>${fmt(s.n)} · ${s.pct_of_target}%</b></div><div class="track"><i style="width:${s.pct_of_target}%;background:${k === "seg_R" ? "var(--rep-lt)" : "var(--npa-lt)"}"></i></div></div>`).join("");
 
   $("#tab-voters").innerHTML = `
-  <div class="page-head"><h2>Voters</h2><p>Our universe is only the voters we target who are <strong>already likely to vote</strong> — no turnout-lift pool for now. ${fmt(OUR_UNIVERSE)} people, ${COVERAGE}% of the votes needed to win.</p></div>
+  <div class="page-head"><h2>Voters</h2><p>Our universe is only the voters we target who are <strong>already likely to vote</strong> — no turnout-lift pool for now. <strong>${fmt(OUR_UNIVERSE)}</strong> people, ${COVERAGE}% of the votes needed to win.</p></div>
 
   <div class="funnel" style="grid-template-columns:repeat(3,1fr)">
-    ${funnel.map(([c, v, l, s]) => `<div class="funnel-step" style="--accent:${c};--accent-lt:${c}"><div class="v num">${fmt(v)}</div><div class="l">${l}</div><p>${s}</p></div>`).join("")}
+    ${funnel.map(([c, v, l, s], i) => `<div class="funnel-step" style="--accent:${c};--accent-lt:${c}${i === 2 ? ";border-width:1px 1px 1px 1px;box-shadow:0 0 0 1px " + c + " inset" : ""}"><div class="v num">${fmt(v)}</div><div class="l">${l}</div><p>${s}</p></div>`).join("")}
   </div>
 
-  <div class="sec-head"><h2>Our Universe</h2><div class="note">${fmt(OUR_UNIVERSE)} likely-voter targets</div></div>
-  <div class="callout" style="margin-bottom:14px"><b>Likely to vote =</b> 4/4 or 3/4 recent generals · 2 of the last 3 (’20·’22·’24) · 2 of the last 4 incl. a midterm · 2 of the last 2 (’22·’24) · or a new mover (registered the last year or two) who voted the 2025 locals.</div>
-  <div class="grid4">
-    ${statCard(C.tealLt, ut ? fmt(ut.locked.n) : "—", "Reliable", `Voted 3–4 of the last 4 generals (${ut ? ut.locked.pct : 0}%).`)}
-    ${statCard(C.goldLt, ut ? fmt(ut.mid.n) : "—", "Likely · 2-of", `Two of the last 3/4, incl. a midterm or ’22+’24 (${ut ? ut.mid.pct : 0}%).`)}
-    ${statCard(C.npaLt, ut ? fmt(ut.low.n) : "—", "New Movers", `Recent registrants who voted the 2025 locals (${ut ? ut.low.pct : 0}%).`)}
-    ${statCard(C.repLt, TG ? `${fmt(TG.party.R)}` : "—", "Republicans", `${TG ? TG.party_pct.R : 0}% of our universe.`)}
+  <div class="sec-head"><h2>How Likely They Are to Vote</h2><div class="note">The three tiers add up to ${fmt(OUR_UNIVERSE)}</div></div>
+  <div class="panel-card">
+    <div class="callout" style="margin-bottom:18px"><b>“Likely to vote” =</b> 4/4 or 3/4 recent generals · 2 of the last 3 (’20·’22·’24) · 2 of the last 4 incl. a midterm · 2 of the last 2 (’22·’24) · or a new mover (registered the last year or two) who voted the 2025 locals.</div>
+    <div style="display:flex;height:34px;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.05)">${stack}</div>
+    <div class="rows" style="margin-top:10px">${tierRows}</div>
   </div>
 
-  <div class="map-grid" style="margin-top:24px">
+  <div class="sec-head"><h2>Who &amp; Where They Are</h2></div>
+  <div class="map-grid">
     <div class="panel-card"><div class="pc-top"><h3>Who They Are</h3></div>
-      <div class="rows">
-        ${TG ? drow("Republicans", `${fmt(TG.party.R)} · ${TG.party_pct.R}%`) : ""}
-        ${TG ? drow("Unaffiliated", `${fmt(TG.party.U)} · ${TG.party_pct.U}%`) : ""}
+      ${TG ? bar("Unaffiliated", TG.party.U, pr.U, "var(--npa-lt)") : ""}
+      ${TG ? bar("Republican", TG.party.R, pr.R, "var(--rep-lt)") : ""}
+      <div class="rows" style="margin-top:10px">
         ${TG ? drow("Women", `${fmt(TG.gender.F)} · ${pct(TG.gender.F, OUR_UNIVERSE)}%`) : ""}
         ${TG ? drow("Men", `${fmt(TG.gender.M)} · ${pct(TG.gender.M, OUR_UNIVERSE)}%`) : ""}
         ${TG ? drow("Average age", TG.avg_age) : ""}
       </div></div>
-    <div class="panel-card"><div class="pc-top"><h3>By Precinct</h3></div>
-      <div class="rows">
-        ${TG && TG.precinct ? Object.values(TG.precinct).sort((a, b) => b.target - a.target).map(pr =>
-          `<div class="drow"><span class="l">${pr.name}</span><span class="v">${fmt(pr.target)} <span style="color:var(--fg-muted);font-size:12px;font-weight:400">of ${fmt(pr.likely_voters)} likely</span></span></div>`).join("") : ""}
-      </div></div>
+    <div class="panel-card"><div class="pc-top"><h3>Where They Are</h3></div>
+      ${precRows}
+    </div>
   </div>
 
-  <div class="sec-head"><h2>How We Reach Them</h2><div class="note">Overlapping segments</div></div>
-  <div class="seg-grid">
-    ${segKeys.map(k => {
-      const s = TG.segments[k];
-      const accent = k === "seg_R" ? [C.rep, C.repLt] : [C.npa, C.npaLt];
-      return `<div class="seg-card" style="--accent:${accent[0]};--accent-lt:${accent[1]}"><h4>${s.label}</h4>
-        <div class="v num">${fmt(s.n)}</div>
-        <div class="meta"><div><span>Share of universe</span><b>${s.pct_of_target}%</b></div></div></div>`;
-    }).join("")}
-  </div>`;
-}
-function statCard(accentLt, v, l, s) {
-  return `<div class="stat-card" style="--accent:${accentLt};--accent-lt:${accentLt}"><div class="v num">${v}</div><div class="l">${l}</div><div class="s">${s}</div></div>`;
+  <div class="sec-head"><h2>How We Reach Them</h2><div class="note">Messaging hooks · a voter can be in several</div></div>
+  <div class="panel-card">${segRows}</div>`;
 }
 
 /* ════════════════════ SIGNALS ════════════════════ */
