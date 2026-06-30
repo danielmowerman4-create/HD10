@@ -140,11 +140,18 @@ def build_segments(df: pd.DataFrame) -> pd.DataFrame:
 
     seg_cols = ["seg_R", "seg_U_with_R", "seg_U_highprop",
                 "seg_U_recent", "seg_U_newer", "seg_U_sel2"]
-    df["TARGET_UNIVERSE"] = df[seg_cols].any(axis=1)
+    df["IN_SEGMENT"] = df[seg_cols].any(axis=1)
 
-    # Sub-universes within the target.
-    df["PROJECTED_VOTE"] = df["TARGET_UNIVERSE"] & df["GEN_COUNT"].ge(2)
-    df["HIGH_PRIORITY_GOTV"] = df["TARGET_UNIVERSE"] & df["GEN_COUNT"].le(1)
+    # Turnout-universe rule: the target universe is ONLY people already likely
+    # to vote — voted >=2 of the last 4 generals. We are not doing turnout-lift
+    # (GOTV of low-propensity) analysis right now; that pool is deferred.
+    df["LIKELY"] = df["GEN_COUNT"].ge(2)
+    df["TARGET_UNIVERSE"] = df["IN_SEGMENT"] & df["ACTIVE"] & df["LIKELY"]
+
+    # Everyone in the target universe is a likely (projected) voter by definition.
+    df["PROJECTED_VOTE"] = df["TARGET_UNIVERSE"]
+    # The deferred turnout-lift pool: in a segment + active, but not yet likely.
+    df["HIGH_PRIORITY_GOTV"] = df["IN_SEGMENT"] & df["ACTIVE"] & ~df["LIKELY"]
     return df, seg_cols
 
 
@@ -170,13 +177,14 @@ def report(df: pd.DataFrame, seg_cols: list[str]) -> dict:
     tgt = df[df["TARGET_UNIVERSE"]]
     n_active, n_tgt = len(active), len(tgt)
 
-    # Per-segment counts (overlapping) and their unique contribution.
+    # Per-segment counts within the (likely-voter) target universe.
     seg_summary = {}
     for c in seg_cols:
+        seg_n = int((df[c] & df["LIKELY"]).sum())
         seg_summary[c] = {
             "label": SEG_LABELS[c],
-            "n": int(df[c].sum()),
-            "pct_of_target": pct(int(df[c].sum()), n_tgt),
+            "n": seg_n,
+            "pct_of_target": pct(seg_n, n_tgt),
         }
 
     party = tgt["P"].value_counts().to_dict()
@@ -214,6 +222,29 @@ def report(df: pd.DataFrame, seg_cols: list[str]) -> dict:
         "avg_age": round(float(tgt["AGE"].mean()), 1) if tgt["AGE"].notna().any() else None,
         "by_district": dist,
     }
+
+    # ---- per-precinct: our likely targets + the precinct's turnout pool ------
+    # Turnout universe (precinct) = active voters already likely to vote
+    # (>=2 of 4 generals). Our target universe is the subset of those we work.
+    likely_active = df[df["ACTIVE"] & df["LIKELY"]]
+    out["likely_voters_total"] = int(len(likely_active))
+    prec = {}
+    for pid, name in PRECINCT_NAMES.items():
+        tp = tgt[tgt["VOTING_DIST"].str.strip().eq(pid)]
+        lp = likely_active[likely_active["VOTING_DIST"].str.strip().eq(pid)]
+        n_tp = len(tp)
+        prec[pid] = {
+            "name": name,
+            "target": n_tp,                       # our likely targets here
+            "likely_voters": int(len(lp)),        # precinct turnout universe
+            "target_pct_of_turnout": pct(n_tp, len(lp)),
+            "party": {k: int(tp["P"].eq(k).sum()) for k in ("R", "U", "D", "O")},
+            "gender": {k: int(tp["G"].eq(k).sum()) for k in ("M", "F", "X")},
+            "locked_in": int((tp["GEN_COUNT"] >= 3).sum()),   # voted 3-4 of 4
+            "voted_2024": int(tp["V2024"].sum()),
+            "avg_age": round(float(tp["AGE"].mean()), 1) if tp["AGE"].notna().any() else None,
+        }
+    out["precinct"] = prec
 
     # ---- pretty console table --------------------------------------------
     line = "─" * 64

@@ -50,6 +50,15 @@ const pmeta = id => PMET.find(m => m.id === id);
 const pval = (pid, id) => PR.byPrecinct[pid][id];
 const SEG = D.segments, SD = SEG.district;
 
+/* ── Universe (turnout-universe rule) ───────────────────────
+   Target universe = ONLY our targets who are already likely to vote
+   (voted >=2 of last 4 generals). No turnout-lift analysis for now. */
+const TURNOUT_UNIVERSE = D.win.projected2026;          // ~6,826 projected 2026 turnout
+const OUR_UNIVERSE = TG ? TG.target_size : 0;          // 3,655 likely-voter targets
+const WIN = D.win.win_number;                          // 3,414 to win
+const COVERAGE = WIN ? Math.round(100 * OUR_UNIVERSE / WIN) : 0;
+const tgPrec = id => (TG && TG.precinct && TG.precinct[id]) || null;
+
 /* ── Sourced election history (CT SOTS / Ballotpedia / Wikipedia) ── */
 const HISTORY = {
   recent: { year: 2024, d: { name: "Henry Genga", pct: 68.8 }, r: { name: "Chris Tierinni", pct: 31.2 } },
@@ -112,34 +121,39 @@ function renderOverview() {
     <div class="hero-left">
       <div class="eyebrow gold">Campaign Assessment</div>
       <h1>HD-10 is difficult, but winnable with disciplined focus.</h1>
-      <p class="lede">HD-10 is Democratic-leaning, but Republicans have a viable path by maximizing turnout in
-        <strong>${t.name}</strong>, banking the Republican base in <strong>${b.name}</strong>,
-        and persuading reachable unaffiliated voters in <strong>${p.name}</strong>.</p>
+      <p class="lede">HD-10 is Democratic-leaning, but Republicans have a viable path by working
+        <strong>${fmt(OUR_UNIVERSE)}</strong> targeted voters who are already likely to turn out — concentrated in
+        <strong>${b.name}</strong>, <strong>${t.name}</strong>, and <strong>${p.name}</strong>.</p>
       <div class="glance">
         <div class="cell"><div class="l">Active Voters</div><div class="v num">${fmt(T.active)}</div></div>
-        <div class="cell"><div class="l">Projected Turnout</div><div class="v num">${fmt(D.win.projected2026)}</div></div>
-        <div class="cell"><div class="l">District Lean</div><div class="v" style="color:${C.demLt}">Dem</div></div>
+        <div class="cell"><div class="l">Turnout Universe</div><div class="v num">${fmt(TURNOUT_UNIVERSE)}</div></div>
+        <div class="cell"><div class="l">Our Targets</div><div class="v num" style="color:${C.tealLt}">${fmt(OUR_UNIVERSE)}</div></div>
       </div>
     </div>
     <div class="hero-right">
       <div class="eyebrow">Path to Victory</div>
-      <div class="win-num"><span class="big num">${fmt(D.win.win_number)}</span><span class="lbl">Votes<br>To Win</span></div>
-      <div class="win-sub">50% + 1 of <strong>${fmt(D.win.projected2026)}</strong> projected voters</div>
+      <div class="win-num"><span class="big num">${fmt(WIN)}</span><span class="lbl">Votes<br>To Win</span></div>
+      <div class="win-sub">50% + 1 of <strong>${fmt(TURNOUT_UNIVERSE)}</strong> projected 2026 voters</div>
       <div class="win-bar"><div class="fill" style="width:50%"></div><div class="tick"></div></div>
       <div class="win-foot"><span>Win Threshold</span><span>50% + 1</span></div>
+      <div class="coverage">
+        <div class="cov-top"><span>Our likely-voter universe</span><b class="num" style="color:${C.tealLt}">${fmt(OUR_UNIVERSE)}</b></div>
+        <div class="cov-bar"><i style="width:${Math.min(100, COVERAGE)}%"></i></div>
+        <div class="cov-foot">${COVERAGE}% of the votes needed — every target counts</div>
+      </div>
     </div>
   </section>
 
   <div class="sec-head"><h2>The Plan — In Priority Order</h2><div class="note">Pick one · work it · move on</div></div>
   <div class="grid3">
-    ${planCard("01", roleOf(t), "Turn Out " + t.name, t.low_prop, "lower-turnout<br>targets",
-      `Largest pool of low-propensity favorable voters. Doors, calls, and early-vote reminders land here first.`)}
-    ${planCard("02", roleOf(p), "Persuade " + p.name, TG ? TG.party.U : T.persuade, "reachable<br>targets",
+    ${planCard("01", roleOf(b), b.name, tgPrec(b.id) ? tgPrec(b.id).target : 0, "likely<br>targets",
+      `Most of our universe and the strongest Republican share at ${b.pct.R}%. Confirm supporters and bank votes early.`)}
+    ${planCard("02", roleOf(t), t.name, tgPrec(t.id) ? tgPrec(t.id).target : 0, "likely<br>targets",
+      `${tgPrec(t.id) ? fmt(tgPrec(t.id).locked_in) : 0} of these are locked-in. Hold them with vote-plan follow-up.`)}
+    ${planCard("03", roleOf(p), p.name, tgPrec(p.id) ? tgPrec(p.id).target : 0, "likely<br>targets",
       `Highest unaffiliated share at ${p.pct.U}%. Affordability, taxes, and candidate validation carry the message.`)}
-    ${planCard("03", roleOf(b), "Bank the Base in " + b.name, T.party.R, "base<br>voters",
-      `Strongest Republican share at ${b.pct.R}%. Confirm supporters and bank votes early with vote-plan follow-up.`)}
   </div>
-  <div class="foot-note"><i></i>Aggregate targeting by precinct &amp; group · Export field packets from the Precincts tab</div>`;
+  <div class="foot-note"><i></i>Target universe = our voters already likely to vote · ${fmt(OUR_UNIVERSE)} of ${fmt(TURNOUT_UNIVERSE)} projected · Export field packets from the Precincts tab</div>`;
 }
 function planCard(idx, role, title, n, unit, body) {
   return `<div class="plan-card" style="--accent:${role.color};--accent-lt:${role.colorLt}">
@@ -213,44 +227,46 @@ function renderPrecinctDetail() {
       <p style="color:var(--fg-dim);font-size:13px;line-height:1.55;margin-top:10px">Counts appear once a precinct is selected.</p>`;
     return;
   }
-  const p = pById(selectedPrecinct), r = roleOf(p);
+  const p = pById(selectedPrecinct), r = roleOf(p), tp = tgPrec(p.id);
   el.style.setProperty("--accent", r.color);
   el.innerHTML = `<div class="pc-top"><div><h3>${p.name}</h3><div class="kk" style="margin-top:5px">Precinct ${p.id} · ${fmt(p.active)} active</div></div>
       <span class="tag" style="color:${r.colorLt}">${r.key}</span></div>
     <div class="rows">
-      ${drow("Republican base", `${fmt(p.party.R)} · ${p.pct.R}%`)}
-      ${drow("Unaffiliated", `${fmt(p.party.U)} · ${p.pct.U}%`)}
-      ${drow("Democratic", `${fmt(p.party.D)} · ${p.pct.D}%`)}
-      ${drow("Lower-propensity voters", fmt(p.low_prop))}
+      ${tp ? drow("Our targets", `<span style="color:${C.tealLt}">${fmt(tp.target)}</span>`) : ""}
+      ${tp ? drow("Likely voters", fmt(tp.likely_voters)) : ""}
+      ${tp ? drow("Targets / likely", `${tp.target_pct_of_turnout}%`) : ""}
+      ${tp ? drow("Locked-in (3–4 of 4)", fmt(tp.locked_in)) : ""}
+      ${tp ? drow("Voted 2024", fmt(tp.voted_2024)) : ""}
       ${drow("2024 turnout", `${p.v24_pct}%`)}
-      ${drow("Average age", p.avg_age)}
+      ${tp ? drow("Avg age (targets)", tp.avg_age) : drow("Average age", p.avg_age)}
     </div>`;
   ex.style.setProperty("--accent", r.color);
-  ex.innerHTML = `<div class="pc-top"><h3>Contact universe</h3><span class="tag" style="color:${r.colorLt}">${fmt(p.active)} active</span></div>
-    ${bar("Republican base", p.party.R, p.active, C.repLt)}
-    ${bar("Unaffiliated", p.persuade, p.active, C.npaLt)}
-    ${bar("Lower-propensity", p.low_prop, p.active, C.tealLt)}
+  ex.innerHTML = `<div class="pc-top"><h3>Our targets</h3><span class="tag" style="color:${r.colorLt}">${tp ? fmt(tp.target) : 0} voters</span></div>
+    ${tp ? bar("Republicans", tp.party.R, tp.target, C.repLt) : ""}
+    ${tp ? bar("Unaffiliated", tp.party.U, tp.target, C.npaLt) : ""}
+    ${tp ? bar("Locked-in", tp.locked_in, tp.target, C.tealLt) : ""}
     <div class="btn-row"><button class="btn gold" id="export-precinct" type="button">Export precinct summary</button></div>`;
   $("#export-precinct").addEventListener("click", () => exportPrecinct(p));
 }
 function renderPrecinctTable() {
   const rows = ranked().map(p => {
-    const r = roleOf(p);
+    const r = roleOf(p), tp = tgPrec(p.id);
     return `<tr>
       <td><b>${p.name}</b><div class="kk">Precinct ${p.id}</div></td>
       <td><span class="tag" style="color:${r.colorLt}">${r.key}</span></td>
-      <td><b>${fmt(p.party.R)}</b><div class="kk">${p.pct.R}%</div></td>
-      <td><b>${fmt(p.persuade)}</b><div class="kk">${p.pct.U}% U</div></td>
-      <td><b>${fmt(p.low_prop)}</b><div class="kk">${p.v24_pct}% '24 turnout</div></td>
+      <td><b style="color:${C.tealLt}">${tp ? fmt(tp.target) : "—"}</b><div class="kk">likely targets</div></td>
+      <td><b>${tp ? fmt(tp.likely_voters) : "—"}</b><div class="kk">likely voters</div></td>
+      <td><b>${p.v24_pct}%</b><div class="kk">'24 turnout</div></td>
       <td><button class="btn" type="button" data-sel="${p.id}">View</button></td></tr>`;
   }).join("");
-  $("#precinct-table").innerHTML = `<thead><tr><th>Precinct</th><th>Role</th><th>R base</th><th>Unaffiliated</th><th>Turnout opp.</th><th></th></tr></thead><tbody>${rows}</tbody>`;
+  $("#precinct-table").innerHTML = `<thead><tr><th>Precinct</th><th>Role</th><th>Our targets</th><th>Likely voters</th><th>2024</th><th></th></tr></thead><tbody>${rows}</tbody>`;
   $$("[data-sel]").forEach(b => b.addEventListener("click", () => { selectedPrecinct = b.dataset.sel; renderPrecinctDetail(); paintPrecinctMap(); $("#precinct-map").scrollIntoView({ behavior: "smooth", block: "center" }); }));
 }
 function exportPrecinct(p) {
+  const tp = tgPrec(p.id) || {};
   const rows = [
-    ["precinct_id", "precinct", "active", "republican", "unaffiliated", "democratic", "lower_propensity", "turnout_2024_pct", "role"],
-    [p.id, p.name, p.active, p.party.R, p.party.U, p.party.D, p.low_prop, p.v24_pct, roleOf(p).key],
+    ["precinct_id", "precinct", "role", "our_targets", "likely_voters", "targets_pct_of_likely", "target_republicans", "target_unaffiliated", "locked_in", "voted_2024", "avg_age", "active", "turnout_2024_pct"],
+    [p.id, p.name, roleOf(p).key, tp.target ?? "", tp.likely_voters ?? "", tp.target_pct_of_turnout ?? "", tp.party ? tp.party.R : "", tp.party ? tp.party.U : "", tp.locked_in ?? "", tp.voted_2024 ?? "", tp.avg_age ?? "", p.active, p.v24_pct],
   ];
   download(`hd10-${p.id}-${p.name.toLowerCase().replace(/\s+/g, "-")}-summary.csv`, rows);
 }
@@ -262,52 +278,54 @@ function download(name, rows) {
 
 /* ════════════════════ VOTERS ════════════════════ */
 function renderVoters() {
-  const contact = TG ? TG.target_size : T.persuade;
+  const ut = TG ? TG.universe_turnout : null;
   const funnel = [
-    [C.demLt, T.active, "All Active Voters", "Every active HD10 registrant."],
-    [C.goldLt, T.high_turnout, "Likely General Voters", "High-turnout voters already in the file."],
-    [C.npaLt, T.persuade, "Persuadable / Reachable", "Unaffiliated plus reachable households."],
-    [C.tealLt, contact, "Priority Contact Universe", "Republican + unaffiliated selected for contact."],
+    [C.demLt, T.active, "All Active Voters", "Every active HD-10 registrant."],
+    [C.goldLt, TURNOUT_UNIVERSE, "Turnout Universe", "Projected to vote in the 2026 election."],
+    [C.tealLt, OUR_UNIVERSE, "Our Target Universe", "Our voters who are already likely to turn out."],
   ];
-  const ladder = ["core", "strong", "medium", "recent", "sporadic", "dormant"];
   const segKeys = TG ? Object.keys(TG.segments) : [];
-  const target = TG ? TG.target_size : T.active;
 
   $("#tab-voters").innerHTML = `
-  <div class="page-head"><h2>Voters</h2><p>Who participates, and who the campaign should contact. The funnel narrows the full file down to the priority universe.</p></div>
-  <div class="funnel">
+  <div class="page-head"><h2>Voters</h2><p>Our universe is only the voters we target who are <strong>already likely to vote</strong> — no turnout-lift pool for now. ${fmt(OUR_UNIVERSE)} people, ${COVERAGE}% of the votes needed to win.</p></div>
+
+  <div class="funnel" style="grid-template-columns:repeat(3,1fr)">
     ${funnel.map(([c, v, l, s]) => `<div class="funnel-step" style="--accent:${c};--accent-lt:${c}"><div class="v num">${fmt(v)}</div><div class="l">${l}</div><p>${s}</p></div>`).join("")}
   </div>
 
-  <div class="sec-head"><h2>Priority Voter Segments</h2><div class="note">Target universe · ${fmt(target)}</div></div>
-  <div class="seg-grid">
-    ${segKeys.map(k => {
-      const s = TG.segments[k];
-      return `<div class="seg-card" style="--accent:${C.npa};--accent-lt:${C.npaLt}"><h4>${s.label}</h4>
-        <div class="v num">${fmt(s.n)}</div>
-        <div class="meta"><div><span>Share of universe</span><b>${s.pct_of_target}%</b></div></div></div>`;
-    }).join("")}
-  </div>
-
-  <div class="sec-head"><h2>At a Glance</h2></div>
+  <div class="sec-head"><h2>Our Universe</h2><div class="note">${fmt(OUR_UNIVERSE)} likely-voter targets</div></div>
   <div class="grid4">
-    ${statCard(C.tealLt, fmt(TG ? TG.projected_vote : SD.core.n + SD.strong.n), "Reliable Voters", "Likely 2026 voters inside the priority universe.")}
-    ${statCard(C.goldLt, fmt(TG ? TG.gotv : T.low_prop), "Turnout Opportunities", "Priority voters who need a real GOTV push.")}
-    ${statCard(C.npaLt, (TG ? TG.party_pct.U : T.pct.U) + "%", "Unaffiliated Share", "The contact universe is persuasion-heavy.")}
-    ${statCard(C.repLt, fmt(TG ? TG.party.R : T.party.R), "Registered Republicans", "The base inside the target universe.")}
+    ${statCard(C.tealLt, ut ? fmt(ut.locked.n) : "—", "Locked-In", `Voted 3–4 of the last 4 — turn out no matter what (${ut ? ut.locked.pct : 0}%).`)}
+    ${statCard(C.goldLt, ut ? fmt(ut.mid.n) : "—", "Mid-Propensity", `Voted 2 of 4 — likely, worth a reminder (${ut ? ut.mid.pct : 0}%).`)}
+    ${statCard(C.repLt, TG ? `${fmt(TG.party.R)}` : "—", "Republicans", `${TG ? TG.party_pct.R : 0}% of our universe.`)}
+    ${statCard(C.npaLt, TG ? `${fmt(TG.party.U)}` : "—", "Unaffiliated", `${TG ? TG.party_pct.U : 0}% — the persuasion pool.`)}
   </div>
 
   <div class="map-grid" style="margin-top:24px">
-    <div class="panel-card"><div class="pc-top"><h3>Turnout Landscape</h3></div>
-      ${ladder.map(k => bar(SD[k].label, SD[k].n, T.active, k === "core" || k === "strong" ? C.tealLt : k === "dormant" ? C.muted : C.goldLt)).join("")}</div>
-    <div class="panel-card"><div class="pc-top"><h3>Target Mix</h3></div>
+    <div class="panel-card"><div class="pc-top"><h3>Who They Are</h3></div>
       <div class="rows">
-        ${drow("Registered Republicans", TG ? `${fmt(TG.party.R)} · ${TG.party_pct.R}%` : fmt(T.party.R))}
-        ${drow("Unaffiliated priority", TG ? `${fmt(TG.party.U)} · ${TG.party_pct.U}%` : fmt(T.party.U))}
-        ${drow("Average age", TG ? TG.avg_age : T.avg_age)}
-        ${TG ? drow("Women", `${fmt(TG.gender.F)} · ${pct(TG.gender.F, target)}%`) : ""}
-        ${TG ? drow("Men", `${fmt(TG.gender.M)} · ${pct(TG.gender.M, target)}%`) : ""}
+        ${TG ? drow("Republicans", `${fmt(TG.party.R)} · ${TG.party_pct.R}%`) : ""}
+        ${TG ? drow("Unaffiliated", `${fmt(TG.party.U)} · ${TG.party_pct.U}%`) : ""}
+        ${TG ? drow("Women", `${fmt(TG.gender.F)} · ${pct(TG.gender.F, OUR_UNIVERSE)}%`) : ""}
+        ${TG ? drow("Men", `${fmt(TG.gender.M)} · ${pct(TG.gender.M, OUR_UNIVERSE)}%`) : ""}
+        ${TG ? drow("Average age", TG.avg_age) : ""}
       </div></div>
+    <div class="panel-card"><div class="pc-top"><h3>By Precinct</h3></div>
+      <div class="rows">
+        ${TG && TG.precinct ? Object.values(TG.precinct).sort((a, b) => b.target - a.target).map(pr =>
+          `<div class="drow"><span class="l">${pr.name}</span><span class="v">${fmt(pr.target)} <span style="color:var(--fg-muted);font-size:12px;font-weight:400">of ${fmt(pr.likely_voters)} likely</span></span></div>`).join("") : ""}
+      </div></div>
+  </div>
+
+  <div class="sec-head"><h2>How We Reach Them</h2><div class="note">Overlapping segments</div></div>
+  <div class="seg-grid">
+    ${segKeys.map(k => {
+      const s = TG.segments[k];
+      const accent = k === "seg_R" ? [C.rep, C.repLt] : [C.npa, C.npaLt];
+      return `<div class="seg-card" style="--accent:${accent[0]};--accent-lt:${accent[1]}"><h4>${s.label}</h4>
+        <div class="v num">${fmt(s.n)}</div>
+        <div class="meta"><div><span>Share of universe</span><b>${s.pct_of_target}%</b></div></div></div>`;
+    }).join("")}
   </div>`;
 }
 function statCard(accentLt, v, l, s) {
@@ -315,12 +333,16 @@ function statCard(accentLt, v, l, s) {
 }
 
 /* ════════════════════ SIGNALS ════════════════════ */
-const SIGNALS = ["turnout24", "dropoff", "vbm", "early", "eday", "newmover", "solo", "unaff", "rep"];
-let signalMap, signalLayer, signalMetric = "turnout24", selectedSignal = basePrecinct.id;
+// Only surface signals that actually differ across precincts (>=7-point spread).
+const SIG_SPREAD = id => { const v = P.map(p => pval(p.id, id)); return Math.max(...v) - Math.min(...v); };
+const SIGNALS = ["turnout24", "dropoff", "vbm", "early", "eday", "newmover", "solo", "unaff", "rep"]
+  .filter(id => SIG_SPREAD(id) >= 7)
+  .sort((a, b) => SIG_SPREAD(b) - SIG_SPREAD(a));
+let signalMap, signalLayer, signalMetric = SIGNALS[0], selectedSignal = basePrecinct.id;
 
 function renderSignals() {
   $("#tab-signals").innerHTML = `
-  <div class="page-head"><h2>Signals</h2><p>Precinct-level behavioral signals from the voter file — participation, vote method, mobility, and household composition. Pick a signal to shade the map.</p></div>
+  <div class="page-head"><h2>Signals</h2><p>Precinct-level signals from the voter file — only the ones that <strong>meaningfully differ</strong> between precincts (7+ point spread) are shown. Pick a signal to shade the map.</p></div>
   <div class="map-grid">
     <div class="mapcard"><div class="map-controls" id="signal-controls"></div><div class="lmap" id="signal-map"></div><div class="maplegend" id="signal-legend"></div></div>
     <aside class="side"><div class="panel-card card-accent" id="signal-detail" style="--accent:${C.gold}"></div></aside>
@@ -340,8 +362,10 @@ function paintSignalMap() {
   if (!signalMap) return;
   if (signalLayer) signalMap.removeLayer(signalLayer);
   const vals = P.map(p => pval(p.id, signalMetric)), lo = Math.min(...vals), hi = Math.max(...vals);
+  // Pad the domain so real differences read clearly without exaggerating them.
+  const pad = Math.max((hi - lo) * 0.6, 6), dLo = lo - pad, dHi = hi + pad;
   signalLayer = L.geoJSON(D.geo, {
-    style: f => featureStyle(fillSeq(pval(f.properties.id, signalMetric), lo - .5, hi + .5, hex2rgb(C.goldLt)), selectedSignal === f.properties.id),
+    style: f => featureStyle(fillSeq(pval(f.properties.id, signalMetric), dLo, dHi, hex2rgb(C.goldLt)), selectedSignal === f.properties.id),
     onEachFeature: (f, layer) => {
       const p = pById(f.properties.id);
       layer.bindTooltip(`<span class="plabel">${p.name}<br>${pval(p.id, signalMetric)}%</span>`, { permanent: true, direction: "center", className: "plabel-wrap" });
@@ -352,7 +376,7 @@ function paintSignalMap() {
       });
     },
   }).addTo(signalMap);
-  legend($("#signal-legend"), `${pmeta(signalMetric).label} by precinct`, [[fillSeq(lo, lo - .5, hi + .5, hex2rgb(C.goldLt)), "Lower"], [fillSeq(hi, lo - .5, hi + .5, hex2rgb(C.goldLt)), "Higher"]]);
+  legend($("#signal-legend"), `${pmeta(signalMetric).label} · ${lo}–${hi}%`, [[fillSeq(lo, dLo, dHi, hex2rgb(C.goldLt)), `Low · ${lo}%`], [fillSeq(hi, dLo, dHi, hex2rgb(C.goldLt)), `High · ${hi}%`]]);
 }
 function renderSignalDetail() {
   const p = pById(selectedSignal), m = pmeta(signalMetric);
