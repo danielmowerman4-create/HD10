@@ -76,10 +76,10 @@ const HRES = {
   data: {
     statehouse: {
       2024: { d: "Genga", r: "Tierinni", bp: { "004": [2131, 687], "005": [1527, 755], "006": [1812, 1042] } },
-      2022: { d: "Genga", r: null, note: "Genga (D) unopposed — precinct data pending" },
-      2020: { d: "Genga", r: null, note: "Genga (D) re-elected — precinct data pending" },
-      2018: { d: "Genga", r: null, note: "Genga (D) re-elected — precinct data pending" },
-      2016: { d: "Genga", r: "Simpson", note: "Genga (D) def. Simpson (R) — precinct data pending" },
+      2022: { d: "Genga", un: true },
+      2020: { d: "Genga", un: true },
+      2018: { d: "Genga", un: true },
+      2016: { d: "Genga", r: "Simpson", bp: { "004": [2554, 557], "005": [1778, 607], "006": [1914, 906] } },
     },
     president: {
       2024: { d: "Harris", r: "Trump", bp: { "004": [2220, 749], "005": [1605, 800], "006": [1908, 1016] } },
@@ -91,11 +91,11 @@ const HRES = {
       2018: { d: "Lamont", r: "Stefanowski", bp: { "004": [1901, 507], "005": [1239, 636], "006": [1368, 988] } },
     },
     mayor: {
-      2025: { d: "Martin", r: null, note: "Martin (D) re-elected — precinct data pending" },
+      2025: { d: "Martin", r: "Davis", bp: { "004": [560, 118], "005": [509, 185], "006": [714, 268] } },
       2023: { d: "Martin", r: "Davis", bp: { "004": [572, 134], "005": [454, 166], "006": [666, 240] } },
       2021: { d: "Walsh", r: "Harper", bp: { "004": [573, 208], "005": [480, 331], "006": [682, 558] } },
-      2019: { d: "Leclerc", r: null, note: "Leclerc (D) — precinct data pending" },
-      2017: { d: "Leclerc", r: null, note: "Leclerc (D) — precinct data pending" },
+      2019: { d: "Leclerc", r: "Morrison", bp: { "004": [591, 242], "005": [470, 315], "006": [612, 519] } },
+      2017: { d: "Leclerc", un: true },
     },
   },
 };
@@ -480,16 +480,17 @@ function paintHistMap() {
   histLayer = L.geoJSON(D.geo, {
     style: f => {
       const cell = hasBP(e) ? e.bp[f.properties.id] : null;
-      return featureStyle(cell ? marginColor(margin(cell[0], cell[1])) : "#3A4658", false);
+      return featureStyle(cell ? marginColor(margin(cell[0], cell[1])) : e.un ? "#2E4A78" : "#3A4658", false);
     },
     onEachFeature: (f, layer) => {
       const p = pById(f.properties.id), cell = hasBP(e) ? e.bp[f.properties.id] : null;
-      const lbl = cell ? `${e.d.split(" ").pop()} +${Math.abs(margin(cell[0], cell[1]))}` : "data pending";
+      const lbl = cell ? `${e.d.split(" ").pop()} +${Math.abs(margin(cell[0], cell[1]))}` : e.un ? "Unopposed" : "data pending";
       layer.bindTooltip(`<span class="plabel">${p.name}<br>${lbl}</span>`, { permanent: true, direction: "center", className: "plabel-wrap" });
     },
   }).addTo(histMap);
   legend($("#hist-legend"), `${HRES.meta[histOffice].label} ${histYear} · D margin`,
-    hasBP(e) ? [[marginColor(10), "Closer · D+10"], [marginColor(33), "Lean · D+33"], [marginColor(55), "Safer · D+55"]] : [["#33415A", "Result pending"]]);
+    hasBP(e) ? [[marginColor(10), "Closer · D+10"], [marginColor(33), "Lean · D+33"], [marginColor(55), "Safer · D+55"]]
+      : e.un ? [["#2E4A78", "Unopposed (D)"]] : [["#33415A", "Result pending"]]);
 }
 function renderHistResult() {
   const e = histEntry(), meta = HRES.meta[histOffice], tot = distTotals(e);
@@ -508,12 +509,14 @@ function renderHistResult() {
       </div>
       <div class="kk" style="margin:16px 0 2px">By precinct</div>
       <div class="rows">${["004", "005", "006"].map(prow).join("")}</div>`;
+  } else if (e.un) {
+    body = `<div class="callout" style="margin-top:10px;background:rgba(37,99,235,.1);border-color:rgba(96,165,250,.3)"><b style="color:${C.demLt}">${e.d} (D) ran unopposed.</b> No Republican on the ballot — the seat was uncontested.</div>`;
   } else {
     body = `<div class="rows" style="margin-top:10px">${drow("Winner", `${e.d} (D)`)}${e.r ? drow("Opponent", `${e.r} (R)`) : ""}</div>
       <div class="callout" style="margin-top:14px">${e.note || "Result pending."}</div>`;
   }
   $("#hist-result").innerHTML = `<div class="pc-top"><div><h3>${meta.label} ${histYear}</h3><div class="kk" style="margin-top:5px">${meta.sub}</div></div>
-      <span class="tag" style="color:${C.demLt}">${tot ? "D +" + margin(tot.d, tot.r) : "Dem"}</span></div>
+      <span class="tag" style="color:${C.demLt}">${tot ? "D +" + margin(tot.d, tot.r) : e.un ? "Uncontested" : "Dem"}</span></div>
     ${body}
     <p style="color:var(--fg-dim);font-size:11.5px;line-height:1.5;margin-top:14px">Source: ${HRES.source}</p>`;
 }
@@ -524,7 +527,7 @@ function renderHistTable() {
       const tp = tot.d + tot.r, dp = Math.round(1000 * tot.d / tp) / 10, rp = Math.round(1000 * tot.r / tp) / 10;
       return `<tr><td><b>${y}</b></td><td>${e.d} (D) · ${e.r} (R)</td><td><b>${dp}%</b> – ${rp}%</td><td><span style="color:${C.demLt}">D +${margin(tot.d, tot.r)}</span></td></tr>`;
     }
-    return `<tr><td><b>${y}</b></td><td>${e.d} (D)${e.r ? " · " + e.r + " (R)" : ""}</td><td colspan="2"><span style="color:var(--fg-muted)">${e.note || "pending"}</span></td></tr>`;
+    return `<tr><td><b>${y}</b></td><td>${e.d} (D)${e.r ? " · " + e.r + " (R)" : ""}</td><td colspan="2"><span style="color:var(--fg-muted)">${e.un ? "Unopposed" : (e.note || "pending")}</span></td></tr>`;
   }).join("");
   $("#hist-table").innerHTML = `<thead><tr><th>Year</th><th>Candidates</th><th>Result (HD-10)</th><th>Margin</th></tr></thead><tbody>${rows}</tbody>`;
 }
