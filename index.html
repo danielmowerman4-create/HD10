@@ -3,162 +3,257 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>HD10 Command Center</title>
+<title>HD10 Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/leaflet.css" />
 <style>
 @font-face{font-family:Tungsten;src:url("assets/fonts/TungstenBold.ttf") format("truetype");font-weight:700;font-display:swap}
 @font-face{font-family:Tungsten;src:url("assets/fonts/TungstenBlack.ttf") format("truetype");font-weight:800 900;font-display:swap}
 :root{
-  --ink:#091421; --ink2:#102033; --paper:#fffaf2; --warm:#f4ecdf; --field:#fbf6ed;
-  --text:#142234; --muted:#667484; --line:rgba(20,34,52,.14); --line-dark:rgba(255,255,255,.14);
-  --red:#c8403f; --violet:#7357c7; --teal:#147f8d; --gold:#c38b23; --green:#2b936d; --gray:#697586;
+  --ink:#07111d; --ink-2:#0d1c2e; --ink-3:#13263d; --surface:#fbf7ef; --surface-2:#efe7da;
+  --paper:#fffaf2; --fg:#f7f2ea; --body-ink:#13202f; --muted:#7b8794; --dim:#536477;
+  --line:rgba(16,32,51,.12); --line-dark:rgba(255,255,255,.12);
+  --red:#c83e3f; --red-2:#e36155; --blue:#2d65a8; --teal:#147f8d; --teal-2:#22a6b8;
+  --gold:#c79124; --gold-2:#e4b44a; --violet:#7457c8; --green:#2c9b74; --orange:#d5813a;
   --disp:Tungsten,"Barlow Condensed",sans-serif; --body:Outfit,system-ui,sans-serif; --r:8px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{min-height:100%;font-family:var(--body);font-size:15px;color:var(--text);background:var(--field);-webkit-font-smoothing:antialiased}
+html,body{min-height:100%}
+body{font-family:var(--body);font-size:14px;color:var(--body-ink);background:var(--surface);-webkit-font-smoothing:antialiased}
 button{font:inherit}
-.wrap{max-width:1240px;margin:0 auto;padding:0 26px}
-.num{font-family:var(--disp);font-weight:700;font-variant-numeric:tabular-nums}
-.kick{font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:1.7px;text-transform:uppercase;color:var(--muted)}
-.topbar{position:sticky;top:0;z-index:80;background:rgba(9,20,33,.97);color:#fff;border-bottom:1px solid var(--line-dark)}
-.topline{min-height:66px;display:flex;align-items:center;gap:16px;padding:0 26px}
-.mark{width:38px;height:38px;border:1px solid rgba(195,139,35,.5);border-radius:6px;display:grid;place-items:center;color:#e7bd62;font-family:var(--disp);font-size:19px;letter-spacing:1px}
-.brand h1{font-family:var(--disp);font-size:25px;letter-spacing:1.1px;text-transform:uppercase;line-height:1}
-.brand p{font-size:12px;color:#b8c3cf;margin-top:4px}
-.meta{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.chip{font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;border:1px solid var(--line-dark);border-radius:6px;padding:6px 10px;color:#dce5ed;background:rgba(255,255,255,.06)}
-.tabs{display:flex;gap:1px;overflow-x:auto;padding:0 26px;background:rgba(16,32,51,.84)}
-.tab{appearance:none;border:0;border-bottom:3px solid transparent;background:transparent;color:#b8c3cf;cursor:pointer;font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:1.8px;text-transform:uppercase;padding:14px 18px;white-space:nowrap}
-.tab:hover,.tab.on{color:#fff;background:rgba(255,255,255,.06)}.tab.on{border-color:#e7bd62}
-.panel{display:none;padding:28px 0 42px}.panel.on{display:block}
-.answer{background:var(--ink);color:#fff;border-radius:var(--r);padding:30px;border-top:4px solid var(--red)}
-.answer h2{font-family:var(--disp);font-size:58px;line-height:.9;letter-spacing:.2px;text-transform:uppercase;max-width:920px}
-.answer p{font-size:19px;line-height:1.45;color:#d7e0ea;max-width:940px;margin-top:16px}
-.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
-.metric-card,.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:18px;position:relative;overflow:hidden}
-.metric-card:before,.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--gold))}
-.metric-card .value{font-family:var(--disp);font-size:48px;line-height:.88;color:var(--accent,var(--ink))}
-.metric-card .label{font-family:var(--disp);font-weight:700;font-size:14px;letter-spacing:1.2px;text-transform:uppercase;margin-top:8px}
-.metric-card .small,.card p{color:var(--muted);font-size:13px;line-height:1.45;margin-top:5px}
-.section{margin-top:24px}.section-title{font-family:var(--disp);font-size:23px;line-height:1;text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px;color:var(--ink)}
-.map-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px}
-.mapbox{background:var(--ink);border:1px solid var(--line-dark);border-radius:var(--r);padding:8px;position:relative}
-.map{height:52vh;min-height:420px;border-radius:6px;background:#101b29}
-.legend{position:absolute;left:18px;bottom:18px;z-index:500;background:rgba(9,20,33,.92);color:#edf3f8;border:1px solid var(--line-dark);border-radius:8px;padding:12px}
-.legend .row{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px}.legend i{width:16px;height:10px;border-radius:2px}
-.leaflet-container{font-family:var(--body)!important;background:#101b29!important}.leaflet-tooltip{background:rgba(9,20,33,.95)!important;border:1px solid rgba(255,255,255,.2)!important;color:#fff!important;border-radius:7px!important;box-shadow:0 8px 22px rgba(0,0,0,.28)!important}.leaflet-tooltip:before{display:none}
-.plabel{font-family:var(--disp);font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#fff;text-shadow:0 1px 5px rgba(0,0,0,.8);font-size:13px;text-align:center}.plabel-wrap{background:none!important;border:0!important;box-shadow:none!important}
-.sidecard{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:20px}
-.sidecard h3,.card h3{font-family:var(--disp);font-size:28px;line-height:1;text-transform:uppercase;letter-spacing:.3px}
-.tag{display:inline-flex;border:1px solid currentColor;color:var(--accent,var(--gold));border-radius:6px;padding:5px 9px;font-family:var(--disp);font-size:11px;letter-spacing:1.2px;text-transform:uppercase;margin-top:10px}
-.facts{display:grid;gap:10px;margin-top:16px}.fact{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:9px;font-size:13px}.fact:last-child{border-bottom:0}.fact span{color:var(--muted)}.fact b{font-family:var(--disp);font-size:16px}
-.conclusions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.conclusion{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:16px}.conclusion b{display:block;font-family:var(--disp);font-size:21px;text-transform:uppercase;line-height:1}.conclusion p{font-size:13px;color:var(--muted);line-height:1.45;margin-top:7px}
-.target-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.target-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:17px;cursor:pointer;text-align:left;border-top:4px solid var(--accent)}.target-card.on{background:#fff;border-color:rgba(9,20,33,.34);box-shadow:0 10px 26px rgba(9,20,33,.1)}.target-card h3{font-family:var(--disp);font-size:22px;text-transform:uppercase;line-height:1}.target-card .value{font-family:var(--disp);font-size:42px;color:var(--accent);line-height:.9;margin-top:12px}.target-card p{font-size:12px;color:var(--muted);line-height:1.35;margin-top:7px}
-.target-detail{display:grid;grid-template-columns:360px minmax(0,1fr);gap:14px;margin-top:16px}
-.export-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}.export-btn{border:0;border-radius:6px;background:var(--ink);color:#fff;cursor:pointer;padding:11px 14px;font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:1.1px;text-transform:uppercase}.export-btn.alt{background:var(--red)}
-.table-wrap{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}.list-table{width:100%;border-collapse:collapse}.list-table th,.list-table td{padding:12px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}.list-table th{font-family:var(--disp);font-size:12px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);background:var(--warm)}.empty-row{padding:22px;color:var(--muted);line-height:1.45}
-.plan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.plan-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:20px;border-top:4px solid var(--accent)}.plan-card h3{font-family:var(--disp);font-size:27px;text-transform:uppercase;line-height:1}.plan-card p{color:var(--muted);line-height:1.5;margin-top:9px}
-.week{background:var(--ink);color:#fff;border-radius:var(--r);padding:24px;border-top:4px solid var(--gold)}.week h3{font-family:var(--disp);font-size:36px;line-height:1;text-transform:uppercase}.week ul{margin:16px 0 0 20px}.week li{margin:9px 0;color:#d9e1e9;line-height:1.4}
-details.more{margin-top:18px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}details.more summary{cursor:pointer;font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:1.2px;text-transform:uppercase}details.more p,details.more li{color:var(--muted);line-height:1.5;margin-top:9px}details.more ul{margin-left:18px}
-footer{padding:24px;color:var(--muted);font-size:12px;line-height:1.5;border-top:1px solid var(--line);background:var(--warm)}
-@media(max-width:980px){.metrics,.target-grid,.plan-grid,.conclusions{grid-template-columns:repeat(2,minmax(0,1fr))}.map-layout,.target-detail{grid-template-columns:1fr}.map{height:46vh}.answer h2{font-size:46px}}
-@media(max-width:640px){.wrap{padding:0 16px}.topline{align-items:flex-start;min-height:0;padding:13px 16px;flex-wrap:wrap}.meta{margin-left:0;justify-content:flex-start}.tabs{padding:0 16px}.metrics,.target-grid,.plan-grid,.conclusions{grid-template-columns:1fr}.answer{padding:22px}.answer h2{font-size:38px}.answer p{font-size:16px}.map{min-height:350px}.legend{left:16px;right:16px}.list-table{min-width:680px}.table-wrap{overflow-x:auto}}
+.num{font-family:var(--disp);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.2px}
+.kick{font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim)}
+.wrap{max-width:1360px;margin:0 auto;padding:0 28px}
+.appbar{position:sticky;top:0;z-index:80;background:rgba(7,17,29,.96);color:var(--fg);border-bottom:1px solid var(--line-dark);backdrop-filter:blur(12px)}
+.topline{height:66px;display:flex;align-items:center;gap:18px;padding:0 28px}
+.mark{width:38px;height:38px;display:grid;place-items:center;border:1px solid rgba(228,180,74,.44);background:rgba(228,180,74,.08);border-radius:6px;font-family:var(--disp);font-size:18px;letter-spacing:1px;color:var(--gold-2)}
+.brand h1{font-family:var(--disp);font-size:24px;line-height:1;letter-spacing:1.2px;text-transform:uppercase}
+.brand p{font-size:12px;color:#aeb9c6;margin-top:4px}
+.topmeta{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.chip{font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:1.3px;text-transform:uppercase;padding:6px 10px;border-radius:6px;background:rgba(255,255,255,.06);border:1px solid var(--line-dark);color:#d8e1ea}
+.chip.source{color:var(--gold-2);border-color:rgba(228,180,74,.38);background:rgba(228,180,74,.08)}
+.method-btn{cursor:pointer;color:#f4ead6;background:rgba(255,255,255,.07)}
+.tabs{display:flex;gap:1px;overflow-x:auto;padding:0 28px;background:rgba(9,23,39,.72)}
+.tab{appearance:none;border:0;border-bottom:3px solid transparent;background:transparent;color:#aeb9c6;cursor:pointer;font-family:var(--disp);font-weight:700;font-size:14px;letter-spacing:1.8px;text-transform:uppercase;padding:14px 16px;white-space:nowrap;transition:.15s}
+.tab:hover{color:#fff;background:rgba(255,255,255,.04)}
+.tab.on{color:#fff;border-color:var(--gold-2);background:rgba(255,255,255,.06)}
+.panel{display:none;padding:28px 0 42px}.panel.on{display:block;animation:fade .22s ease}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.page-title{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}
+.page-title h2{font-family:var(--disp);font-size:39px;line-height:.95;letter-spacing:.4px;text-transform:uppercase;color:var(--ink)}
+.page-title p{max-width:560px;color:var(--dim);font-size:13px;line-height:1.5;text-align:right}
+.section{margin-top:28px}.section-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}.section-head b{font-family:var(--disp);font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--ink)}.section-head i{flex:1;height:1px;background:var(--line)}
+.hero-summary{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:18px;align-items:stretch}
+.briefing{background:var(--ink);color:var(--fg);border-radius:var(--r);padding:28px;border:1px solid rgba(255,255,255,.12);min-height:320px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.briefing:before{content:"";position:absolute;inset:0;border-top:4px solid var(--red);pointer-events:none}
+.briefing h3{font-family:var(--disp);font-size:58px;line-height:.9;letter-spacing:.2px;text-transform:uppercase;max-width:860px}
+.briefing .sub{font-size:15px;color:#c8d2dd;line-height:1.55;max-width:780px;margin-top:14px}
+.winning-path{margin-top:24px;padding-top:20px;border-top:1px solid var(--line-dark)}
+.winning-path .label{font-family:var(--disp);font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--gold-2);margin-bottom:7px}
+.winning-path p{font-size:18px;line-height:1.45;max-width:820px}
+.update-box{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:16px}
+.update-box .big{font-family:var(--disp);font-size:64px;line-height:.85;color:var(--red)}
+.update-box h4{font-family:var(--disp);font-size:22px;letter-spacing:.4px;text-transform:uppercase}
+.update-box p{color:var(--dim);line-height:1.55}
+.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.stat-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;position:relative;overflow:hidden}
+.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--line))}
+.card .value{font-family:var(--disp);font-weight:700;font-size:46px;line-height:.9;color:var(--accent,var(--ink))}
+.card .label{font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:1.4px;text-transform:uppercase;margin-top:8px;color:var(--ink)}
+.card .small{font-size:12px;color:var(--dim);line-height:1.45;margin-top:5px}
+.map-grid{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:16px}
+.mapcard{background:var(--ink);border:1px solid rgba(255,255,255,.12);border-radius:var(--r);padding:8px;position:relative;box-shadow:0 18px 40px rgba(13,28,46,.12)}
+.lmap{height:63vh;min-height:470px;border-radius:6px;background:#101b29}
+.preview-map{height:330px;min-height:330px}
+.map-controls{position:absolute;top:18px;left:18px;z-index:500;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 36px)}
+.seg-btn{border:1px solid rgba(255,255,255,.18);background:rgba(7,17,29,.86);color:#c9d4de;cursor:pointer;border-radius:6px;padding:8px 11px;font-family:var(--disp);font-weight:700;font-size:12px;letter-spacing:1.1px;text-transform:uppercase;backdrop-filter:blur(8px)}
+.seg-btn:hover,.seg-btn.on{color:#fff;background:rgba(199,145,36,.92);border-color:rgba(228,180,74,.8)}
+.maplegend{position:absolute;bottom:18px;left:18px;z-index:500;background:rgba(7,17,29,.9);border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:11px 13px;color:#e8edf2;backdrop-filter:blur(8px)}
+.maplegend .row{display:flex;align-items:center;gap:8px;font-size:11.5px;margin-top:5px}.maplegend i{width:16px;height:10px;border-radius:2px}
+.leaflet-container{font-family:var(--body)!important;background:#101b29!important}.leaflet-tooltip{background:rgba(7,17,29,.94)!important;border:1px solid rgba(255,255,255,.2)!important;color:#fff!important;border-radius:7px!important;box-shadow:0 8px 22px rgba(0,0,0,.35)!important}.leaflet-tooltip:before{display:none}
+.plabel{font-family:var(--disp);font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:#fff;text-shadow:0 1px 5px rgba(0,0,0,.85);font-size:13px;text-align:center}.plabel-wrap{background:none!important;border:0!important;box-shadow:none!important}
+.side{display:flex;flex-direction:column;gap:14px}.detail{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:20px}.detail.dark{background:var(--ink);color:var(--fg);border-color:var(--line-dark)}
+.detail-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.detail h3{font-family:var(--disp);font-size:28px;line-height:1;text-transform:uppercase;letter-spacing:.3px}.tag{display:inline-flex;align-items:center;border-radius:6px;padding:5px 9px;font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;border:1px solid currentColor;color:var(--accent,var(--gold))}
+.metric-list{display:flex;flex-direction:column;gap:10px;margin-top:16px}.metric{display:flex;justify-content:space-between;gap:14px;padding-bottom:9px;border-bottom:1px solid var(--line);font-size:12.5px}.metric:last-child{border-bottom:0}.metric span{color:var(--dim)}.metric b{font-family:var(--disp);font-size:15px;color:var(--body-ink);font-weight:700}.dark .metric{border-color:var(--line-dark)}.dark .metric span{color:#aeb9c6}.dark .metric b{color:#fff}
+.bar{margin-top:12px}.bar-top{display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px}.bar-top b{font-family:var(--disp);font-size:14px}.track{height:9px;background:rgba(16,32,51,.08);border-radius:5px;overflow:hidden}.track i{display:block;height:100%;border-radius:5px;background:var(--accent)}
+.rank-table{width:100%;border-collapse:collapse;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:table}
+.rank-table th,.rank-table td{padding:13px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.rank-table th{font-family:var(--disp);font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim);background:#f4ecdf}.rank-table tr:last-child td{border-bottom:0}.rank-table button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:6px;padding:6px 8px;cursor:pointer;font-family:var(--disp);font-weight:700;letter-spacing:.9px;text-transform:uppercase;font-size:11px}
+.action-list{display:grid;gap:12px}.action{display:grid;grid-template-columns:42px 1fr;gap:12px;padding:15px;border:1px solid var(--line);border-radius:var(--r);background:var(--paper)}.action .n{font-family:var(--disp);font-size:31px;color:var(--accent,var(--gold));line-height:.9}.action h4{font-family:var(--disp);font-size:20px;text-transform:uppercase;letter-spacing:.3px}.action p{color:var(--dim);font-size:13px;line-height:1.5;margin-top:3px}
+.funnel{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch}.funnel-step{background:var(--ink);color:var(--fg);border-radius:var(--r);padding:18px;border-top:4px solid var(--accent)}.funnel-step .value{font-family:var(--disp);font-size:42px;line-height:.9;color:var(--gold-2)}.funnel-step .label{font-family:var(--disp);font-size:15px;text-transform:uppercase;letter-spacing:.9px;margin-top:8px}.funnel-step p{font-size:12px;color:#b9c4cf;line-height:1.45;margin-top:5px}
+.segment-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.segment-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:18px;border-top:4px solid var(--accent)}.segment-card h4{font-family:var(--disp);font-size:22px;line-height:1;text-transform:uppercase;letter-spacing:.3px}.segment-card .value{font-family:var(--disp);font-size:42px;color:var(--accent);margin-top:12px}.segment-card p{font-size:12.5px;color:var(--dim);line-height:1.45;margin-top:8px}
+.takeaway{margin-top:12px;background:#f1e8d9;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;color:var(--dim);font-size:12.5px;line-height:1.5}.takeaway b{color:var(--ink)}
+.matrix{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}.mrow{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr 1fr;border-bottom:1px solid var(--line)}.mrow:last-child{border-bottom:0}.mcell{padding:14px;border-right:1px solid var(--line);min-height:82px;display:flex;flex-direction:column;justify-content:center}.mcell:last-child{border-right:0}.mrow.head .mcell{min-height:auto;background:#f4ecdf;font-family:var(--disp);font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim)}.mcell h4{font-family:var(--disp);font-size:20px;text-transform:uppercase;letter-spacing:.3px}.mcell p{font-size:12px;color:var(--dim);line-height:1.4;margin-top:4px}
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.flow-card{background:var(--ink);color:var(--fg);border-radius:var(--r);padding:18px;border-top:4px solid var(--accent);min-height:145px}.flow-card .value{font-family:var(--disp);font-size:40px;line-height:.9;color:var(--accent)}.flow-card h4{font-family:var(--disp);font-size:18px;text-transform:uppercase;letter-spacing:.4px;margin-top:9px}.flow-card p{font-size:12px;color:#bac4ce;line-height:1.45;margin-top:5px}
+.empty{min-height:220px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;border:1px dashed var(--line);border-radius:var(--r);padding:24px;background:rgba(255,250,242,.62)}.empty .symbol{width:34px;height:34px;border-radius:6px;background:rgba(199,145,36,.14);border:1px solid rgba(199,145,36,.28);margin-bottom:12px}.empty h3{font-family:var(--disp);font-size:24px;text-transform:uppercase}.empty p{color:var(--dim);line-height:1.5;margin-top:4px}
+.drawer{position:fixed;inset:0;z-index:100;display:none}.drawer.on{display:block}.drawer-bg{position:absolute;inset:0;background:rgba(7,17,29,.55)}.drawer-panel{position:absolute;right:0;top:0;bottom:0;width:min(520px,92vw);background:var(--paper);padding:26px;border-left:1px solid var(--line);box-shadow:-24px 0 70px rgba(0,0,0,.22);overflow:auto}.drawer-panel h2{font-family:var(--disp);font-size:36px;text-transform:uppercase}.drawer-panel p,.drawer-panel li{color:var(--dim);line-height:1.55}.drawer-panel ul{margin:16px 0 0 18px}.close{position:absolute;top:18px;right:18px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:7px 10px;cursor:pointer}
+footer{padding:28px;color:var(--dim);font-size:11.5px;line-height:1.6;border-top:1px solid var(--line);background:#f1e9dc}
+@media(max-width:1080px){.hero-summary,.map-grid{grid-template-columns:1fr}.stat-grid,.stat-grid.four,.segment-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.flow,.funnel{grid-template-columns:repeat(2,minmax(0,1fr))}.page-title{align-items:flex-start;flex-direction:column}.page-title p{text-align:left}.lmap{height:52vh}}
+@media(max-width:680px){.wrap{padding:0 16px}.topline{height:auto;min-height:66px;padding:12px 16px;align-items:flex-start}.topmeta{width:100%;margin-left:0;justify-content:flex-start}.tabs{padding:0 16px}.briefing h3{font-size:42px}.stat-grid,.stat-grid.four,.segment-grid,.flow,.funnel{grid-template-columns:1fr}.mrow{grid-template-columns:1fr}.mcell{border-right:0;border-bottom:1px solid var(--line)}.rank-table{display:block;overflow-x:auto}.preview-map{height:270px;min-height:270px}.lmap{min-height:360px}.map-controls{position:static;margin-bottom:8px}.maplegend{right:18px}.panel{padding-top:20px}}
 </style>
 </head>
 <body>
-<header class="topbar">
+<div class="appbar">
   <div class="topline">
     <div class="mark">HD</div>
     <div class="brand">
-      <h1>HD10 Command Center</h1>
-      <p>What to do, where to go, and who to contact.</p>
+      <h1>HD10 Intelligence</h1>
+      <p>The data layer between the voter file and the campaign plan.</p>
     </div>
-    <div class="meta">
-      <span class="chip" id="district-chip">Connecticut House District 10</span>
-      <span class="chip" id="source-chip">SOTS voter file</span>
+    <div class="topmeta">
+      <span class="chip" id="h-district">Connecticut House District 10</span>
+      <span class="chip" id="h-candidate">Candidate</span>
+      <span class="chip source" id="h-source">SOTS voter file</span>
+      <button class="chip method-btn" id="method-open" type="button">Methodology</button>
     </div>
   </div>
-  <nav class="tabs" aria-label="Main sections">
-    <button class="tab on" type="button" data-tab="overview">Overview</button>
-    <button class="tab" type="button" data-tab="targets">Targets</button>
-    <button class="tab" type="button" data-tab="plan">Plan</button>
-  </nav>
-</header>
+  <div class="tabs" role="tablist" aria-label="HD10 Intelligence sections">
+    <button class="tab on" data-tab="overview" type="button">Overview</button>
+    <button class="tab" data-tab="precincts" type="button">Priority Precincts</button>
+    <button class="tab" data-tab="voters" type="button">Priority Voters</button>
+    <button class="tab" data-tab="messages" type="button">Message Map</button>
+    <button class="tab" data-tab="path" type="button">Path to Victory</button>
+  </div>
+</div>
 
 <main class="wrap">
   <section class="panel on" id="tab-overview">
-    <div class="answer">
-      <div class="kick" style="color:#e7bd62">Campaign assessment</div>
-      <h2>HD-10 is difficult, but winnable with disciplined focus.</h2>
-      <p id="assessment">Loading the campaign assessment.</p>
-    </div>
-    <div class="metrics" id="overview-metrics"></div>
-    <section class="section">
-      <h2 class="section-title">Where To Focus</h2>
-      <div class="map-layout">
-        <div class="mapbox">
-          <div class="map" id="focus-map"></div>
-          <div class="legend" id="focus-legend"></div>
+    <div class="hero-summary">
+      <div class="briefing">
+        <div>
+          <div class="kick" style="color:var(--gold-2)">Connecticut House District 10</div>
+          <h3>Turnout, persuasion, and precinct focus in East Hartford.</h3>
+          <p class="sub">HD10 is a Democratic-registration district where the Republican route depends on holding the base, expanding among unaffiliated voters, and concentrating field work where turnout or persuasion can actually move votes.</p>
         </div>
-        <aside class="sidecard" id="area-card"></aside>
-      </div>
-    </section>
-    <section class="section">
-      <h2 class="section-title">What Matters Most</h2>
-      <div class="conclusions" id="what-matters"></div>
-    </section>
-  </section>
-
-  <section class="panel" id="tab-targets">
-    <div class="answer">
-      <div class="kick" style="color:#e7bd62">Field organizer view</div>
-      <h2>Four groups. Pick one and work it.</h2>
-      <p>Use this page to choose a target group, see the best precinct, and export the right field packet.</p>
-    </div>
-    <section class="section">
-      <div class="target-grid" id="target-cards"></div>
-      <div class="target-detail">
-        <aside class="sidecard" id="target-detail"></aside>
-        <div class="table-wrap">
-          <table class="list-table">
-            <thead><tr><th>Name</th><th>Address</th><th>Precinct</th><th>Target Group</th><th>Priority Score</th><th>Contact Status</th></tr></thead>
-            <tbody id="list-preview"></tbody>
-          </table>
+        <div class="winning-path">
+          <div class="label">Winning Path</div>
+          <p id="overview-winning-path">Loading campaign path.</p>
         </div>
       </div>
-    </section>
+      <aside class="update-box">
+        <div>
+          <div class="kick">Last updated</div>
+          <div class="big" id="last-updated">2026</div>
+          <h4 id="race-label">HD10 campaign model</h4>
+          <p id="overview-note">Updated through the local voter-file build. Open methodology for source and model notes.</p>
+        </div>
+        <button class="seg-btn" id="method-open-2" type="button" style="position:static;background:var(--ink);border-color:var(--ink);color:#fff;width:max-content">View methodology</button>
+      </aside>
+    </div>
+
+    <div class="section">
+      <div class="stat-grid" id="overview-cards"></div>
+    </div>
+
+    <div class="section map-grid">
+      <div>
+        <div class="section-head"><b>District Map Preview</b><i></i></div>
+        <div class="mapcard"><div class="lmap preview-map" id="overview-map"></div><div class="maplegend" id="overview-legend"></div></div>
+      </div>
+      <div class="side">
+        <div class="detail" id="overview-priorities"></div>
+        <div class="detail" id="overview-now"></div>
+      </div>
+    </div>
   </section>
 
-  <section class="panel" id="tab-plan">
-    <div class="answer">
-      <div class="kick" style="color:#e7bd62">Execution plan</div>
-      <h2>How to win HD-10</h2>
-      <p>Win by turning out favorable voters, persuading reachable unaffiliated voters, and refusing to spend time where the return is low.</p>
+  <section class="panel" id="tab-precincts">
+    <div class="page-title">
+      <h2>Priority Precincts</h2>
+      <p>This is the working map for focus decisions. Select a precinct to see who matters there, what message is strongest, and what the campaign should do next.</p>
     </div>
-    <section class="section">
-      <div class="plan-grid" id="plan-blocks"></div>
-    </section>
-    <section class="section">
-      <div class="week">
-        <h3>This Week's Priorities</h3>
-        <ul id="weekly-priorities"></ul>
+    <div class="map-grid">
+      <div class="mapcard">
+        <div class="map-controls" id="precinct-controls"></div>
+        <div class="lmap" id="precinct-map"></div>
+        <div class="maplegend" id="precinct-legend"></div>
       </div>
-    </section>
-    <details class="more" id="more-detail">
-      <summary>More Detail</summary>
-      <div id="more-detail-content"></div>
-    </details>
+      <aside class="side">
+        <div class="detail dark" id="precinct-detail"></div>
+        <div class="detail" id="precinct-export"></div>
+      </aside>
+    </div>
+    <div class="section">
+      <div class="section-head"><b>Precinct Ranking</b><i></i></div>
+      <table class="rank-table" id="precinct-ranking"></table>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-voters">
+    <div class="page-title">
+      <h2>Priority Voters</h2>
+      <p>The turnout landscape shows who participates. Priority voters are the people the campaign should contact.</p>
+    </div>
+    <div class="funnel" id="voter-funnel"></div>
+    <div class="section">
+      <div class="section-head"><b>Six Voter Priorities</b><i></i></div>
+      <div class="segment-grid" id="segment-cards"></div>
+      <div class="takeaway" id="segment-takeaway"></div>
+    </div>
+    <div class="section stat-grid" id="reliable-vs-opportunity"></div>
+    <div class="section map-grid">
+      <div class="detail" id="target-mix"></div>
+      <div class="detail" id="turnout-ladder"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-messages">
+    <div class="page-title">
+      <h2>Message Map</h2>
+      <p>Message recommendations are inferred from voter-file signals, precinct composition, and turnout behavior. They should guide testing, not substitute for polling.</p>
+    </div>
+    <div class="section">
+      <div class="section-head"><b>Persuasion Environment</b><i></i></div>
+      <div class="segment-grid" id="message-cards"></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><b>Issue -> Audience -> Best Precincts -> Campaign Use</b><i></i></div>
+      <div class="matrix" id="message-matrix"></div>
+      <div class="takeaway" id="message-takeaway"></div>
+    </div>
+    <div class="section map-grid">
+      <div class="mapcard">
+        <div class="map-controls" id="signal-controls"></div>
+        <div class="lmap" id="signal-map"></div>
+        <div class="maplegend" id="signal-legend"></div>
+      </div>
+      <aside class="detail" id="signal-detail"></aside>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-path">
+    <div class="page-title">
+      <h2>Path to Victory</h2>
+      <p>This is the clearest available modeled path to a Republican victory based on the current voter-file model. It describes a required coalition, not a promised outcome.</p>
+    </div>
+    <div class="flow" id="winning-coalition"></div>
+    <div class="section map-grid">
+      <div class="detail" id="path-baseline"></div>
+      <div class="detail" id="path-precincts"></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><b>Recommended Action Plan</b><i></i></div>
+      <div class="action-list" id="action-plan"></div>
+    </div>
   </section>
 </main>
+
+<div class="drawer" id="method-drawer" aria-hidden="true">
+  <div class="drawer-bg" data-close-method></div>
+  <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="method-title">
+    <button class="close" type="button" data-close-method>Close</button>
+    <h2 id="method-title">Methodology</h2>
+    <div id="method-content"></div>
+  </div>
+</div>
 
 <footer id="foot"></footer>
 
 <script src="assets/leaflet.js"></script>
-<script src="data/hd10.js?v=14"></script>
-<script src="data/target.js?v=14"></script>
-<script src="app.js?v=14"></script>
+<script src="data/hd10.js?v=15"></script>
+<script src="data/target.js?v=15"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>
