@@ -171,7 +171,7 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
   <div class="tab on" data-tab="map">Battle Map</div>
   <div class="tab" data-tab="universe">Universe</div>
   <div class="tab" data-tab="target">Target</div>
-  <div class="tab" data-tab="issues">Issues</div>
+  <div class="tab" data-tab="issues">Audiences</div>
   <div class="tab" data-tab="play">Strategy</div>
 </div>
 
@@ -193,11 +193,13 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
 
   <!-- UNIVERSE -->
   <div class="panel" id="tab-universe">
-    <div class="ptitle"><h1>The Universe</h1><span class="kick">who votes · who to chase · the number</span></div>
-    <div class="hero" id="u-top"></div>
+    <div class="ptitle"><h1>The Universe</h1><span class="kick">who actually votes · click a precinct</span></div>
+    <div class="tgrid" id="u-stats" style="margin-bottom:8px"></div>
+    <div class="hero">
+      <div class="mapcard"><div class="seg" id="useg"></div><div class="lmap" id="umap"></div><div class="maplegend" id="ulegend"></div></div>
+      <div class="side"><div class="pdetail" id="udetail" style="flex:1"></div></div>
+    </div>
     <div class="block"><div class="shead"><span class="t">Who Shows Up — Turnout Pyramid</span><span class="ln"></span></div><div class="pyramid" id="u-pyramid"></div><div class="note" id="u-pnote"></div></div>
-    <div class="block"><div class="shead"><span class="t">The Target Universe</span><span class="ln"></span></div><div class="pcards" id="u-targets"></div></div>
-    <div class="block"><div class="shead"><span class="t">By Precinct</span><span class="ln"></span></div><div class="matrix" id="u-prec"></div></div>
   </div>
 
   <!-- TARGET -->
@@ -210,22 +212,19 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
     <div class="block"><div class="shead"><span class="t">2026 Playbook</span><span class="ln"></span></div><div class="plays" id="t-plays"></div></div>
   </div>
 
-  <!-- ISSUES -->
+  <!-- AUDIENCES -->
   <div class="panel" id="tab-issues">
-    <div class="ptitle"><h1>Issue Battlefield</h1><span class="kick">message audiences by precinct</span></div>
+    <div class="ptitle"><h1>Reach the Voters</h1><span class="kick">real audiences · the message that fits · click a precinct</span></div>
     <div class="ichips" id="ichips"></div>
     <div class="hero">
       <div class="mapcard"><div class="lmap" id="imap"></div><div class="maplegend" id="ilegend"></div></div>
       <div class="side">
         <div class="bigstat" style="background:linear-gradient(160deg,rgba(212,160,23,.16),rgba(15,33,64,.5));border-color:rgba(212,160,23,.34)">
           <div class="v" id="is-v" style="color:var(--gold-lt)">—</div><div class="l" id="is-l">—</div><div class="s" id="is-s">—</div></div>
-        <div class="pdetail" id="idetail"></div>
+        <div class="pdetail" id="idetail" style="flex:1"></div>
       </div>
     </div>
-    <div class="block"><div class="shead"><span class="t">Find It By Precinct</span><span class="ln"></span></div>
-      <div class="matrix" id="matrix"></div>
-      <div class="note" id="inote"></div>
-    </div>
+    <div class="note" id="inote" style="margin-top:18px"></div>
   </div>
 
   <!-- STRATEGY -->
@@ -239,8 +238,8 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
 </div>
 
 <script src="assets/leaflet.js"></script>
-<script src="data/hd10.js?v=5"></script>
-<script src="data/target.js?v=5"></script>
-<script src="app.js?v=5"></script>
+<script src="data/hd10.js?v=6"></script>
+<script src="data/target.js?v=6"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

@@ -24,11 +24,12 @@ ROLE[expand.id] = { tag: "Expand", col: "var(--teal-lt)", fill: "#1A8B9A", desc:
 const seq = (v, lo, hi, base) => { const t = Math.max(0, Math.min(1, (v - lo) / (hi - lo))); const f = [22, 36, 56]; return `rgb(${f.map((c, i) => Math.round(c + (base[i] - c) * (.18 + .82 * t))).join(",")})`; };
 
 /* ============ tabs ============ */
-let mapBuilt = false, imapBuilt = false;
+let mapBuilt = false, imapBuilt = false, umapBuilt = false;
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === t));
   document.querySelectorAll(".panel").forEach(p => p.classList.toggle("on", p.id === "tab-" + t.dataset.tab));
   if (t.dataset.tab === "map" && BMAP) setTimeout(() => BMAP.invalidateSize(), 60);
+  if (t.dataset.tab === "universe") { if (!umapBuilt) { buildUniverseMap(); umapBuilt = true; } setTimeout(() => UMAP && UMAP.invalidateSize(), 60); }
   if (t.dataset.tab === "issues") { if (!imapBuilt) { buildIssueMap(); imapBuilt = true; } setTimeout(() => IMAP && IMAP.invalidateSize(), 60); }
 });
 
@@ -90,60 +91,59 @@ $("#pcards").innerHTML = [...P].sort((a, b) => b.active - a.active).map(p => {
 }).join("");
 $("#pcards").querySelectorAll(".pc").forEach(el => el.onclick = () => { selId = el.dataset.id; paint(); detail(); $("#tab-map").scrollIntoView({ behavior: "smooth" }); });
 
-/* ============ ISSUES ============ */
-/* Issue = a transparent age-defined audience (stated in the UI). Every count
-   under it — audience size, persuadable U, D/R, 2024 turnout, age — is REAL,
-   read straight from the SOTS file per precinct (D.issues). */
-const ISS = D.issues, IDEFS = ISS.defs;
-const idist = id => ISS.district[id];
-const icell = (pid, id) => ISS.byPrecinct[pid][id];
-let issue = "taxes", iSel = beach.id, IMAP, ilayer;
+/* ============ AUDIENCES (real, addressable voter slices — no invented issues) ===
+   Each audience is a defined slice of the file (age cohort or new registrant)
+   paired with the message that fits. Every number — size, persuadable U, party,
+   2024 turnout, age — is read straight from the SOTS file, per precinct. */
+const AUD = D.audiences, ADEFS = AUD.defs;
+const adist = id => AUD.district[id];
+const acell = (pid, id) => AUD.byPrecinct[pid][id];
+let aud = "older", iSel = beach.id, IMAP, ilayer;
 
-$("#ichips").innerHTML = IDEFS.map(i => `<button class="ichip ${i.id === issue ? "on" : ""}" data-i="${i.id}">${i.name}</button>`).join("");
+$("#ichips").innerHTML = ADEFS.map(a => `<button class="ichip ${a.id === aud ? "on" : ""}" data-i="${a.id}">${a.name}</button>`).join("");
 $("#ichips").querySelectorAll(".ichip").forEach(b => b.onclick = () => {
-  issue = b.dataset.i;
+  aud = b.dataset.i;
   $("#ichips").querySelectorAll(".ichip").forEach(x => x.classList.toggle("on", x === b));
-  paintIssue(); issueDetail();
+  audDetail();
 });
-function curDef() { return IDEFS.find(i => i.id === issue); }
-function buildIssueMap() { IMAP = baseMap("imap"); paintIssue(); }
+function curAud() { return ADEFS.find(a => a.id === aud); }
+function buildIssueMap() { IMAP = baseMap("imap"); paintAud(); }
 
-function paintIssue() {
+function paintAud() {
   if (!IMAP) return;
   if (ilayer) IMAP.removeLayer(ilayer);
-  const shares = P.map(p => 100 * icell(p.id, issue).persuade / p.active);
+  const shares = P.map(p => 100 * acell(p.id, aud).persuade / p.active);
   const lo = Math.min(...shares), hi = Math.max(...shares);
   ilayer = L.geoJSON(D.geo, {
     style: f => {
-      const p = pById(f.properties.id), s = 100 * icell(p.id, issue).persuade / p.active;
+      const p = pById(f.properties.id), s = 100 * acell(p.id, aud).persuade / p.active;
       return { fillColor: seq(s, lo - 1, hi + 1, [212, 160, 23]), fillOpacity: f.properties.id === iSel ? .92 : .74, color: f.properties.id === iSel ? "#fff" : "#06111F", weight: f.properties.id === iSel ? 2.5 : 1.4 };
     },
     onEachFeature: (f, lyr) => {
       const p = pById(f.properties.id);
-      lyr.bindTooltip(`<span class="plabel">${p.name}<br>${fmt(icell(p.id, issue).persuade)}</span>`, { permanent: true, direction: "center", className: "plabel-wrap" });
+      lyr.bindTooltip(`<span class="plabel">${p.name}<br>${fmt(acell(p.id, aud).persuade)}</span>`, { permanent: true, direction: "center", className: "plabel-wrap" });
       lyr.on({
         mouseover: e => e.target.setStyle({ weight: 3, color: "#22AABC" }),
-        mouseout: () => paintIssue(),
-        click: () => { iSel = p.id; paintIssue(); issueDetail(); }
+        mouseout: () => paintAud(),
+        click: () => { iSel = p.id; paintAud(); audDetail(); }
       });
     }
   }).addTo(IMAP);
-  $("#ilegend").innerHTML = `<div class="kick">${curDef().name} · persuadable U</div><div class="row"><i style="background:${seq(lo, lo - 1, hi + 1, [212, 160, 23])}"></i>fewer per door</div><div class="row"><i style="background:${seq(hi, lo - 1, hi + 1, [212, 160, 23])}"></i>more per door</div>`;
+  $("#ilegend").innerHTML = `<div class="kick">${curAud().name} · persuadable U</div><div class="row"><i style="background:${seq(lo, lo - 1, hi + 1, [212, 160, 23])}"></i>fewer per door</div><div class="row"><i style="background:${seq(hi, lo - 1, hi + 1, [212, 160, 23])}"></i>more per door</div>`;
 }
 
-function issueDetail() {
-  const def = curDef(), dd = idist(issue);
+function audDetail() {
+  const def = curAud(), dd = adist(aud);
   $("#is-v").textContent = fmt(dd.persuade);
   $("#is-l").textContent = def.name + " · persuadable";
-  $("#is-s").innerHTML = `<b style="color:var(--fg)">${fmt(dd.persuade)}</b> unaffiliated voters in the <b style="color:var(--fg)">${def.who}</b> audience — the realistic people to move on this message district-wide.`;
+  $("#is-s").innerHTML = `<b style="color:var(--fg)">${fmt(dd.aud)}</b> voters · <b style="color:var(--fg)">${fmt(dd.persuade)}</b> unaffiliated to move. Message: <b style="color:var(--gold-lt)">${def.msg}</b>.`;
 
-  const p = pById(iSel), r = ROLE[p.id], c = icell(p.id, issue);
-  const audPct = (100 * c.aud / p.active).toFixed(0);
+  const p = pById(iSel), r = ROLE[p.id], c = acell(p.id, aud);
   const bar = (l, v, d, col) => `<div class="bar"><div class="bt"><span>${l}</span><b>${fmt(v)} · ${pct(v, d)}%</b></div><div class="track"><i style="width:${pct(v, d)}%;background:${col}"></i></div></div>`;
   $("#idetail").innerHTML =
     `<div class="top"><span class="pn">${p.name}</span><span class="role" style="color:${r.col};background:rgba(124,58,237,.12);border:1px solid ${r.col}">${r.tag}</span></div>
-     <div class="kick" style="margin-top:3px">${def.name} audience · ${def.who}</div>
-     <div class="dstat" style="margin-top:12px"><span>Audience size</span><b>${fmt(c.aud)} · ${audPct}% of precinct</b></div>
+     <div class="kick" style="margin-top:3px">${def.name} · ${def.who}</div>
+     <div class="dstat" style="margin-top:12px"><span>Audience size</span><b>${fmt(c.aud)} · ${pct(c.aud, p.active)}% of precinct</b></div>
      <div class="bars" style="margin-top:10px">
        ${bar("Unaffiliated (persuade)", c.persuade, c.aud, "var(--npa)")}
        ${bar("Democratic", c.D, c.aud, "var(--dem)")}
@@ -152,37 +152,17 @@ function issueDetail() {
      <div class="dstat" style="margin-top:12px"><span>Voted 2024</span><b>${c.v24_pct}% · ${fmt(c.v24)} of ${fmt(c.aud)}</b></div>
      <div class="dstat"><span>Avg age</span><b>${c.avg_age}</b></div>
      <div class="kick" style="margin-top:13px;margin-bottom:6px">Persuadable U by precinct — click the map</div>
-     ${[...P].sort((a, b) => icell(b.id, issue).persuade - icell(a.id, issue).persuade).map(pp => {
+     ${[...P].sort((a, b) => acell(b.id, aud).persuade - acell(a.id, aud).persuade).map(pp => {
         const on = pp.id === iSel;
-        return `<div class="dstat" style="border-bottom:1px solid var(--border);padding-bottom:7px;cursor:pointer;${on ? "background:rgba(212,160,23,.08)" : ""}" data-pid="${pp.id}"><span><b style="font-family:var(--disp);font-size:14px;color:${on ? "var(--gold-lt)" : "var(--fg)"}">${pp.name}</b> <span style="color:var(--fg-dim)">· ${ROLE[pp.id].tag}</span></span><b style="color:var(--gold-lt)">${fmt(icell(pp.id, issue).persuade)}</b></div>`;
+        return `<div class="dstat" style="border-bottom:1px solid var(--border);padding-bottom:7px;cursor:pointer;${on ? "background:rgba(212,160,23,.08)" : ""}" data-pid="${pp.id}"><span><b style="font-family:var(--disp);font-size:14px;color:${on ? "var(--gold-lt)" : "var(--fg)"}">${pp.name}</b> <span style="color:var(--fg-dim)">· ${ROLE[pp.id].tag}</span></span><b style="color:var(--gold-lt)">${fmt(acell(pp.id, aud).persuade)}</b></div>`;
       }).join("")}`;
-  $("#idetail").querySelectorAll("[data-pid]").forEach(el => el.onclick = () => { iSel = el.dataset.pid; paintIssue(); issueDetail(); });
-  paintIssue();
-}
-
-/* matrix: issues × precincts — real persuadable U, shaded, click to focus */
-function buildMatrix() {
-  const ord = [...P].sort((a, b) => b.active - a.active);
-  let html = `<div class="mrow head"><div class="mc">Message · Audience</div>${ord.map(p => `<div class="mc">${p.name}</div>`).join("")}</div>`;
-  IDEFS.forEach(def => {
-    const vals = ord.map(p => icell(p.id, def.id).persuade), mx = Math.max(...vals), best = vals.indexOf(mx);
-    html += `<div class="mrow"><div class="mc"><span class="iname">${def.name}</span><span class="iaud">${def.who} · unaffiliated</span></div>` +
-      ord.map((p, i) => {
-        const c = icell(p.id, def.id);
-        return `<div class="mc cell ${i === best ? "best" : ""}" data-pid="${p.id}" data-iss="${def.id}" style="cursor:pointer"><div class="fillbg" style="width:${Math.round(100 * c.persuade / mx)}%"></div><div class="cv">${fmt(c.persuade)}</div><div class="cs">${pct(c.persuade, p.active)}% of precinct</div></div>`;
-      }).join("") + `</div>`;
-  });
-  $("#matrix").innerHTML = html;
-  $("#matrix").querySelectorAll(".cell").forEach(el => el.onclick = () => {
-    issue = el.dataset.iss; iSel = el.dataset.pid;
-    $("#ichips").querySelectorAll(".ichip").forEach(x => x.classList.toggle("on", x.dataset.i === issue));
-    issueDetail(); $("#tab-issues").scrollIntoView({ behavior: "smooth" });
-  });
-  $("#inote").innerHTML = `<b>How to read this:</b> each cell is the real count of <b>unaffiliated</b> voters in that age audience, by precinct — the realistic persuasion target for the message. Gold = the precinct to hit first. <b>Click any cell</b> to focus it on the map. Audience boundaries are age definitions from the voter file; every count is real. Layer in canvass or survey data to confirm which message lands.`;
+  $("#idetail").querySelectorAll("[data-pid]").forEach(el => el.onclick = () => { iSel = el.dataset.pid; paintAud(); audDetail(); });
+  $("#inote").innerHTML = `<b>How to read this:</b> the voter file holds no issue opinions, so none are invented. Each audience is a real slice of the file — an age cohort or recent registrant — and the message is the one that demographically fits. Every count (size, unaffiliated, party, 2024 turnout, age) is read straight from the SOTS file, per precinct. Pair with canvass or survey data to confirm which message lands hardest.`;
+  paintAud();
 }
 
 /* ============ UNIVERSE (turnout segments — all real from the file) ============ */
-const SEG = D.segments, SD = SEG.district;
+const SEG = D.segments, SD = SEG.district, segP = pid => SEG.byPrecinct[pid];
 const SEGCOL = {
   core: ["var(--gold-lt)", "#D4A017"], strong: ["var(--teal-lt)", "#1A8B9A"],
   medium: ["var(--npa-lt)", "#7C3AED"], recent: ["var(--good)", "#34D399"],
@@ -193,33 +173,55 @@ const LADDER = ["core", "strong", "medium", "recent", "sporadic"];
 const lockedIn = SD.core.n + SD.strong.n;                       // 3-4 of 4 generals
 const persuasion = SD.medium.party.U + SD.recent.party.U + SD.sporadic.party.U; // U not yet locked
 const reactivate = SD.sporadic.n + SD.dormant.n;                // chase / register
+const pLocked = p => segP(p.id).core.n + segP(p.id).strong.n;
+const pPersuade = p => segP(p.id).medium.party.U + segP(p.id).recent.party.U + segP(p.id).sporadic.party.U;
+const pReact = p => segP(p.id).sporadic.n + segP(p.id).dormant.n;
 
-function uTop() {
-  const compBar = LADDER.concat("dormant").map(k => {
-    const s = SD[k]; return `<i style="width:${(100 * s.n / SD._total).toFixed(1)}%;background:${SEGCOL[k][1]}" title="${s.label}"></i>`;
-  }).join("");
-  $("#u-top").innerHTML =
-    `<div class="winhero">
-       <div class="kick">Locked-in turnout universe</div>
-       <div class="v">${fmt(lockedIn)}</div>
-       <div class="l">Core + Strong — voted 3–4 of last 4 generals</div>
-       <div class="s" style="font-size:12.5px;color:var(--fg-muted);margin:8px 0 16px;line-height:1.5">${pct(lockedIn, SD._total)}% of active voters turn out almost no matter what. They get a turnout/persuasion mix — never a registration ask. The race is decided in the three groups below them.</div>
-       <div class="kick" style="margin-bottom:6px">Universe composition</div>
-       <div class="wbar" style="display:flex">${compBar}</div>
-       <div style="display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:10px">${LADDER.concat("dormant").map(k => `<span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--fg-muted)"><i style="width:11px;height:11px;border-radius:2px;background:${SEGCOL[k][1]}"></i>${SD[k].label}</span>`).join("")}</div>
-     </div>
-     <div class="side">
-       <div class="bigstat" style="background:linear-gradient(160deg,rgba(124,58,237,.16),rgba(15,33,64,.5));border-color:rgba(124,58,237,.34)">
-         <div class="v" style="color:var(--npa-lt)">${fmt(persuasion)}</div>
-         <div class="l">Persuadable unaffiliated</div>
-         <div class="s">Unaffiliated voters in the Medium, Recent &amp; Sporadic groups — winnable and not yet locked to either party.</div>
-       </div>
-       <div class="bigstat" style="background:linear-gradient(160deg,rgba(232,148,58,.14),rgba(15,33,64,.5));border-color:rgba(232,148,58,.32)">
-         <div class="v" style="color:#E8943A">${fmt(reactivate)}</div>
-         <div class="l">Reactivation pool</div>
-         <div class="s">Sporadic voters + ${fmt(SD.dormant.n)} registrants with no vote history — the GOTV &amp; registration universe.</div>
-       </div>
-     </div>`;
+/* headline stat strip */
+$("#u-stats").innerHTML = [
+  ["gold", fmt(lockedIn), "Locked-in voters", pct(lockedIn, SD._total) + "% turn out no matter what"],
+  ["npa", fmt(persuasion), "Persuadable unaffiliated", "the winnable middle"],
+  ["teal", fmt(reactivate), "Reactivation pool", "GOTV + registration universe"],
+  ["rep", fmt(SD.dormant.n), "No vote history", SD.dormant.pct + "% — registered, never voted"],
+].map(([c, v, l, s]) => `<div class="tcard ${c}"><div class="v">${v}</div><div class="l">${l}</div><div class="s">${s}</div></div>`).join("");
+
+/* universe map — color precincts by a turnout dimension, click to focus */
+const UMETRICS = {
+  locked: { label: "Locked-in", base: [212, 160, 23], val: p => 100 * pLocked(p) / p.active },
+  persuade: { label: "Persuadable", base: [167, 139, 250], val: p => 100 * pPersuade(p) / p.active },
+  react: { label: "Reactivation", base: [232, 148, 58], val: p => 100 * pReact(p) / p.active },
+};
+let umetric = "locked", uSel = beach.id, UMAP, ulayer;
+$("#useg").innerHTML = Object.entries(UMETRICS).map(([k, m]) => `<button data-k="${k}" class="${k === umetric ? "on" : ""}">${m.label}</button>`).join("");
+$("#useg").querySelectorAll("button").forEach(b => b.onclick = () => { umetric = b.dataset.k; $("#useg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); paintU(); });
+
+function buildUniverseMap() { UMAP = baseMap("umap"); paintU(); }
+function paintU() {
+  if (!UMAP) return;
+  if (ulayer) UMAP.removeLayer(ulayer);
+  const m = UMETRICS[umetric];
+  const vals = P.map(m.val), lo = Math.min(...vals), hi = Math.max(...vals);
+  ulayer = L.geoJSON(D.geo, {
+    style: f => { const p = pById(f.properties.id); return { fillColor: seq(m.val(p), lo - 1, hi + 1, m.base), fillOpacity: f.properties.id === uSel ? .92 : .74, color: f.properties.id === uSel ? "#fff" : "#06111F", weight: f.properties.id === uSel ? 2.5 : 1.4 }; },
+    onEachFeature: (f, lyr) => {
+      const p = pById(f.properties.id);
+      lyr.bindTooltip(`<span class="plabel">${p.name}<br>${m.val(p).toFixed(0)}%</span>`, { permanent: true, direction: "center", className: "plabel-wrap" });
+      lyr.on({ mouseover: e => e.target.setStyle({ weight: 3, color: "#22AABC" }), mouseout: () => paintU(), click: () => { uSel = p.id; paintU(); uDetail(); } });
+    }
+  }).addTo(UMAP);
+  $("#ulegend").innerHTML = `<div class="kick">${m.label} · share of precinct</div><div class="row"><i style="background:${seq(lo, lo - 1, hi + 1, m.base)}"></i>lower</div><div class="row"><i style="background:${seq(hi, lo - 1, hi + 1, m.base)}"></i>higher</div>`;
+}
+function uDetail() {
+  const p = pById(uSel), r = ROLE[p.id], sp = segP(p.id);
+  const lad = LADDER.map(k => { const s = sp[k], mx = Math.max(...LADDER.map(j => sp[j].n)); return `<div class="bar"><div class="bt"><span style="color:${SEGCOL[k][0]}">${SD[k].label}</span><b>${fmt(s.n)} · U ${s.party_pct.U}%</b></div><div class="track"><i style="width:${Math.round(100 * s.n / mx)}%;background:${SEGCOL[k][1]}"></i></div></div>`; }).join("");
+  $("#udetail").innerHTML =
+    `<div class="top"><span class="pn">${p.name}</span><span class="role" style="color:${r.col};background:rgba(124,58,237,.12);border:1px solid ${r.col}">${r.tag}</span></div>
+     <div class="kick" style="margin-top:3px">Precinct ${p.id} · ${fmt(p.active)} active</div>
+     <div class="dstat" style="margin-top:12px"><span>Locked-in (3–4 of 4)</span><b>${fmt(pLocked(p))} · ${pct(pLocked(p), p.active)}%</b></div>
+     <div class="dstat"><span>Persuadable unaffiliated</span><b>${fmt(pPersuade(p))}</b></div>
+     <div class="dstat"><span>Reactivation pool</span><b>${fmt(pReact(p))}</b></div>
+     <div class="kick" style="margin-top:14px;margin-bottom:8px">Turnout ladder</div>
+     <div class="bars">${lad}</div>`;
 }
 
 function uPyramid() {
@@ -235,37 +237,7 @@ function uPyramid() {
   $("#u-pnote").innerHTML = `<b>How to read this:</b> mutually-exclusive segments by participation in the last four general elections (2018 · 2020 · 2022 · 2024). Bars show party mix (<b style="color:var(--dem)">D</b> / <b style="color:var(--npa)">U</b> / <b style="color:var(--rep)">R</b>). Propensity climbs with age and Democratic lean — the lower-propensity groups are markedly more unaffiliated, which is exactly where a Republican has room. <b>Registered · No History</b> (${fmt(SD.dormant.n)}, ${SD.dormant.pct}%) is shown in the composition bar above but excluded from the ladder.`;
 }
 
-function uTargets() {
-  const cards = [
-    { k: "recent", title: "Recent Movers", v: SD.recent.n, sub: `${SD.recent.party_pct.U}% unaffiliated · avg age ${SD.recent.avg_age}`, note: `Newly engaged — voted ’22 &amp; ’24 only. ${fmt(SD.recent.new_reg_local)} are post-2022 registrants who already vote local. Define their issues early.` },
-    { k: "medium", title: "Soft Persuasion", v: SD.medium.party.U, sub: `unaffiliated in the 2-of-4 group`, note: `Vote in big years, skip the rest. Nearly evenly split D/U — the cleanest persuasion mail target in the file.` },
-    { k: "sporadic", title: "Reactivation", v: SD.sporadic.n, sub: `${SD.sporadic.party_pct.U}% U · ${fmt(SD.sporadic.new_reg_local)} new-reg local voters`, note: `Voted once or only off-cycle. Heavily unaffiliated (${SD.sporadic.party_pct.U}%) and young (avg ${SD.sporadic.avg_age}) — a GOTV + persuasion universe.` },
-  ];
-  $("#u-targets").innerHTML = cards.map(c => {
-    const s = SD[c.k];
-    return `<div class="pc" style="border-top-color:${SEGCOL[c.k][1]};cursor:default">
-      <div class="pch"><span class="pcn">${c.title}</span><span class="role" style="color:${SEGCOL[c.k][0]};background:rgba(255,255,255,.05);border:1px solid ${SEGCOL[c.k][0]}">${s.label}</span></div>
-      <div class="pcv" style="color:${SEGCOL[c.k][0]}">${fmt(c.v)}</div><div class="pcl">${c.sub}</div>
-      <div class="mini"><i style="width:${s.party_pct.D}%;background:var(--dem)"></i><i style="width:${s.party_pct.U}%;background:var(--npa)"></i><i style="width:${s.party_pct.R}%;background:var(--rep)"></i></div>
-      <p style="font-size:12px;color:var(--fg-muted);line-height:1.5;margin-top:12px">${c.note}</p></div>`;
-  }).join("");
-}
-
-function uPrec() {
-  const ord = [...P].sort((a, b) => b.active - a.active);
-  let html = `<div class="mrow head"><div class="mc">Segment</div>${ord.map(p => `<div class="mc">${p.name}</div>`).join("")}</div>`;
-  LADDER.concat("dormant").forEach(k => {
-    const vals = ord.map(p => SEG.byPrecinct[p.id][k].n), mx = Math.max(...vals), best = vals.indexOf(mx);
-    html += `<div class="mrow"><div class="mc"><span class="iname" style="color:${SEGCOL[k][0]}">${SD[k].label}</span><span class="iaud">${SD[k].rule}</span></div>` +
-      ord.map((p, i) => {
-        const s = SEG.byPrecinct[p.id][k];
-        return `<div class="mc cell ${i === best ? "best" : ""}"><div class="fillbg" style="width:${Math.round(100 * s.n / mx)}%;background:${SEGCOL[k][1]}22"></div><div class="cv">${fmt(s.n)}</div><div class="cs">${s.pct}% · U ${s.party_pct.U}%</div></div>`;
-      }).join("") + `</div>`;
-  });
-  $("#u-prec").innerHTML = html;
-}
-
-uTop(); uPyramid(); uTargets(); uPrec();
+uPyramid(); uDetail();
 
 /* ============ TARGET UNIVERSE (Republican chase list — real, from the file) ============ */
 const TG = window.HD10_TARGET;
@@ -356,5 +328,5 @@ $("#plays").innerHTML = [
 $("#foot").innerHTML = `<b>Source:</b> Connecticut SOTS voter file — ${fmt(T.active)} active registrants in HD-10 (East Hartford precincts 004 · 005 · 006). Precinct boundaries: U.S. Census 2020 voting districts. Party, turnout and age computed from the file; issue audiences modeled from age structure. No individual voter records are shown or published.`;
 
 /* boot */
-paint(); detail(); issueDetail(); buildMatrix();
+paint(); detail(); audDetail();
 })();

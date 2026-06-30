@@ -200,21 +200,23 @@ def summarize_segments(voters):
     return result
 
 
-# --- issue audiences: real party + turnout per precinct ----------------------
-# Each issue is a transparent age-defined audience. Counts under it are real.
-ISSUES = [
-    {"id": "safety",  "name": "Public Safety",   "who": "All active voters",
-     "buckets": ["young", "parent", "mid", "senior"]},
-    {"id": "cost",    "name": "Cost of Living",  "who": "Age 18–49",
-     "buckets": ["young", "parent"]},
-    {"id": "taxes",   "name": "Taxes & Spending", "who": "Age 50+",
-     "buckets": ["mid", "senior"]},
-    {"id": "schools", "name": "Schools",          "who": "Age 35–49",
-     "buckets": ["parent"]},
-    {"id": "jobs",    "name": "Jobs & Economy",   "who": "Under 35",
-     "buckets": ["young"]},
-    {"id": "seniors", "name": "Senior Services",  "who": "Age 65+",
-     "buckets": ["senior"]},
+# --- message audiences: REAL, addressable voter slices -----------------------
+# The voter file holds no issue opinions, so we don't invent any. Instead each
+# audience is a real, defined slice of the file (age cohort or new registrant),
+# paired with the message that demographically fits. Every count is real.
+AUDIENCES = [
+    {"id": "young",  "name": "Young Voters",     "who": "Age 18–34",
+     "msg": "Jobs, affordability & a reason to stay",
+     "pred": lambda v: v["age"] is not None and v["age"] < 35},
+    {"id": "family", "name": "Working Families", "who": "Age 35–54",
+     "msg": "Cost of living, schools & safe streets",
+     "pred": lambda v: v["age"] is not None and 35 <= v["age"] < 55},
+    {"id": "older",  "name": "Older Voters",     "who": "Age 55+",
+     "msg": "Taxes, fixed income & public safety",
+     "pred": lambda v: v["age"] is not None and v["age"] >= 55},
+    {"id": "newmover", "name": "New Movers",     "who": "Registered 2023+",
+     "msg": "Introduce the candidate, define the race first",
+     "pred": lambda v: bool(v["reg_year"]) and v["reg_year"] >= 2023},
 ]
 
 
@@ -223,58 +225,41 @@ def blank_cell():
             "v24": 0, "age_sum": 0, "age_n": 0}
 
 
-def crosstab(voters):
-    """precinct -> agebucket -> real party / turnout / age cell."""
-    tab = defaultdict(lambda: defaultdict(blank_cell))
-    for v in voters:
-        if v["abucket"] is None:
-            continue
-        c = tab[v["dist"]][v["abucket"]]
-        c["n"] += 1
-        c[v["party"]] += 1
-        if v["v24"]:
-            c["v24"] += 1
-        if v["age"] is not None:
-            c["age_sum"] += v["age"]
-            c["age_n"] += 1
-    return tab
+def add_voter(cell, v):
+    cell["n"] += 1
+    cell[v["party"]] += 1
+    if v["v24"]:
+        cell["v24"] += 1
+    if v["age"] is not None:
+        cell["age_sum"] += v["age"]
+        cell["age_n"] += 1
 
 
-def issue_rows(voters):
-    tab = crosstab(voters)
-    precincts = sorted(tab.keys())
-    data = {"defs": [{"id": i["id"], "name": i["name"], "who": i["who"]} for i in ISSUES],
-            "byPrecinct": {}}
+def finalize(cell):
+    return {"aud": cell["n"], "persuade": cell["U"], "D": cell["D"], "R": cell["R"],
+            "v24": cell["v24"], "v24_pct": pct(cell["v24"], cell["n"]),
+            "avg_age": round(cell["age_sum"] / cell["age_n"]) if cell["age_n"] else None}
+
+
+def audience_rows(voters):
+    """Real per-precinct audience cells (party / turnout / age), all from file."""
+    precincts = sorted({v["dist"] for v in voters if v["dist"] in PRECINCT_NAMES})
+    data = {"defs": [{"id": a["id"], "name": a["name"], "who": a["who"], "msg": a["msg"]}
+                     for a in AUDIENCES],
+            "byPrecinct": {}, "district": {}}
     for pid in precincts:
-        per_issue = {}
-        for issue in ISSUES:
-            agg = blank_cell()
-            for bk in issue["buckets"]:
-                c = tab[pid][bk]
-                for k in ("n", "D", "R", "U", "O", "v24", "age_sum", "age_n"):
-                    agg[k] += c[k]
-            per_issue[issue["id"]] = {
-                "aud": agg["n"], "persuade": agg["U"],
-                "D": agg["D"], "R": agg["R"],
-                "v24": agg["v24"], "v24_pct": pct(agg["v24"], agg["n"]),
-                "avg_age": round(agg["age_sum"] / agg["age_n"]) if agg["age_n"] else None,
-            }
-        data["byPrecinct"][pid] = per_issue
-    # district totals
-    dist_issue = {}
-    for issue in ISSUES:
-        agg = blank_cell()
-        for pid in precincts:
-            for bk in issue["buckets"]:
-                c = tab[pid][bk]
-                for k in ("n", "D", "R", "U", "O", "v24", "age_sum", "age_n"):
-                    agg[k] += c[k]
-        dist_issue[issue["id"]] = {
-            "aud": agg["n"], "persuade": agg["U"], "D": agg["D"], "R": agg["R"],
-            "v24": agg["v24"], "v24_pct": pct(agg["v24"], agg["n"]),
-            "avg_age": round(agg["age_sum"] / agg["age_n"]) if agg["age_n"] else None,
-        }
-    data["district"] = dist_issue
+        cells = {a["id"]: blank_cell() for a in AUDIENCES}
+        for v in (x for x in voters if x["dist"] == pid):
+            for a in AUDIENCES:
+                if a["pred"](v):
+                    add_voter(cells[a["id"]], v)
+        data["byPrecinct"][pid] = {aid: finalize(c) for aid, c in cells.items()}
+    dcells = {a["id"]: blank_cell() for a in AUDIENCES}
+    for v in voters:
+        for a in AUDIENCES:
+            if a["pred"](v):
+                add_voter(dcells[a["id"]], v)
+    data["district"] = {aid: finalize(c) for aid, c in dcells.items()}
     return data
 
 
@@ -287,7 +272,7 @@ def main():
     seg_by_precinct = {pid: summarize_segments([v for v in voters if v["dist"] == pid])
                        for pid in PRECINCT_NAMES}
 
-    issues = issue_rows(voters)
+    audiences = audience_rows(voters)
 
     # merge into existing window.HD10 without disturbing the rest
     js = (DATA_DIR / "hd10.js").read_text()
@@ -300,7 +285,8 @@ def main():
         "district": seg_district,
         "byPrecinct": seg_by_precinct,
     }
-    payload["issues"] = issues
+    payload["audiences"] = audiences
+    payload.pop("issues", None)  # superseded by real message audiences
 
     (DATA_DIR / "hd10.js").write_text(
         "window.HD10 = " + json.dumps(payload, separators=(",", ":")) + ";\n")
