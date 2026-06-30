@@ -185,12 +185,28 @@ def report(df: pd.DataFrame, seg_cols: list[str]) -> dict:
             .rename(index=lambda k: f"{k} {PRECINCT_NAMES.get(k, '')}".strip())
             .to_dict())
 
+    # ---- propensity makeup of MY universe (cross target x turnout) ---------
+    # Locked-in = voted 3-4 of the last 4 generals (turn out no matter what).
+    gc = tgt["GEN_COUNT"]
+    locked = int((gc >= 3).sum())     # high-propensity, reliable
+    mid = int((gc == 2).sum())        # likely but not certain (2 of 4)
+    low = int((gc <= 1).sum())        # need a turnout push (0-1 of 4)
+
     out = {
         "active_voters": n_active,
         "target_size": n_tgt,
         "target_pct_active": pct(n_tgt, n_active),
         "projected_vote": int(df["PROJECTED_VOTE"].sum()),
         "gotv": int(df["HIGH_PRIORITY_GOTV"].sum()),
+        # the two clear numbers: locked-in voters in MY universe, and the
+        # share of my universe they make up.
+        "locked_in": locked,
+        "locked_in_pct": pct(locked, n_tgt),
+        "universe_turnout": {
+            "locked": {"n": locked, "pct": pct(locked, n_tgt)},
+            "mid": {"n": mid, "pct": pct(mid, n_tgt)},
+            "low": {"n": low, "pct": pct(low, n_tgt)},
+        },
         "segments": seg_summary,
         "party": {k: int(party.get(k, 0)) for k in ("R", "U", "D", "O")},
         "party_pct": {k: pct(int(party.get(k, 0)), n_tgt) for k in ("R", "U", "D", "O")},
@@ -204,8 +220,10 @@ def report(df: pd.DataFrame, seg_cols: list[str]) -> dict:
     print(f"\n{line}\nHD-10 REPUBLICAN TARGET UNIVERSE — 2026\n{line}")
     print(f"Active voters (STATUS=A) ........ {n_active:>7,}")
     print(f"TARGET UNIVERSE ................. {n_tgt:>7,}  ({out['target_pct_active']}% of active)")
+    print(f"  ├─ LOCKED-IN (3-4 of 4) ....... {out['locked_in']:>7,}  ({out['locked_in_pct']}% of your universe — turn out no matter what)")
+    print(f"  ├─ Mid-propensity (2 of 4) .... {out['universe_turnout']['mid']['n']:>7,}  ({out['universe_turnout']['mid']['pct']}% of your universe)")
     print(f"  ├─ Projected Vote (>=2 of 4) .. {out['projected_vote']:>7,}  (likely 2026 voters)")
-    print(f"  └─ High-Priority GOTV (<=1/4) . {out['gotv']:>7,}  (in target, need turnout push)")
+    print(f"  └─ High-Priority GOTV (<=1/4) . {out['gotv']:>7,}  ({out['universe_turnout']['low']['pct']}% — in target, need turnout push)")
     print(f"\nSegments (overlapping — voter may be in several):")
     for c in seg_cols:
         s = seg_summary[c]
