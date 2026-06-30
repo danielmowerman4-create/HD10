@@ -171,7 +171,7 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
   <div class="tab on" data-tab="map">Battle Map</div>
   <div class="tab" data-tab="universe">Universe</div>
   <div class="tab" data-tab="target">Target</div>
-  <div class="tab" data-tab="issues">Audiences</div>
+  <div class="tab" data-tab="issues">Profiles</div>
   <div class="tab" data-tab="play">Strategy</div>
 </div>
 
@@ -212,19 +212,25 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
     <div class="block"><div class="shead"><span class="t">2026 Playbook</span><span class="ln"></span></div><div class="plays" id="t-plays"></div></div>
   </div>
 
-  <!-- AUDIENCES -->
+  <!-- PROFILES -->
   <div class="panel" id="tab-issues">
-    <div class="ptitle"><h1>Reach the Voters</h1><span class="kick">real audiences · the message that fits · click a precinct</span></div>
-    <div class="ichips" id="ichips"></div>
-    <div class="hero">
-      <div class="mapcard"><div class="lmap" id="imap"></div><div class="maplegend" id="ilegend"></div></div>
-      <div class="side">
-        <div class="bigstat" style="background:linear-gradient(160deg,rgba(212,160,23,.16),rgba(15,33,64,.5));border-color:rgba(212,160,23,.34)">
-          <div class="v" id="is-v" style="color:var(--gold-lt)">—</div><div class="l" id="is-l">—</div><div class="s" id="is-s">—</div></div>
-        <div class="pdetail" id="idetail" style="flex:1"></div>
+    <div class="ptitle"><h1>How the Precincts Differ</h1><span class="kick">real signals from the file · precinct-by-precinct targeting</span></div>
+    <div class="pcards" id="dna"></div>
+    <div class="block"><div class="shead"><span class="t">Map a Signal</span><span class="ln"></span></div>
+      <div class="ichips" id="ichips"></div>
+      <div class="hero">
+        <div class="mapcard"><div class="lmap" id="imap"></div><div class="maplegend" id="ilegend"></div></div>
+        <div class="side">
+          <div class="bigstat" style="background:linear-gradient(160deg,rgba(212,160,23,.16),rgba(15,33,64,.5));border-color:rgba(212,160,23,.34)">
+            <div class="v" id="is-v" style="color:var(--gold-lt)">—</div><div class="l" id="is-l">—</div><div class="s" id="is-s">—</div></div>
+          <div class="pdetail" id="idetail" style="flex:1"></div>
+        </div>
       </div>
     </div>
-    <div class="note" id="inote" style="margin-top:18px"></div>
+    <div class="block"><div class="shead"><span class="t">Side by Side — Every Signal vs District</span><span class="ln"></span></div>
+      <div class="matrix" id="pmatrix"></div>
+      <div class="note" id="inote"></div>
+    </div>
   </div>
 
   <!-- STRATEGY -->
@@ -238,8 +244,8 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
 </div>
 
 <script src="assets/leaflet.js"></script>
-<script src="data/hd10.js?v=6"></script>
-<script src="data/target.js?v=6"></script>
-<script src="app.js?v=6"></script>
+<script src="data/hd10.js?v=7"></script>
+<script src="data/target.js?v=7"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

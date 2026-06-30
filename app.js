@@ -91,74 +91,105 @@ $("#pcards").innerHTML = [...P].sort((a, b) => b.active - a.active).map(p => {
 }).join("");
 $("#pcards").querySelectorAll(".pc").forEach(el => el.onclick = () => { selId = el.dataset.id; paint(); detail(); $("#tab-map").scrollIntoView({ behavior: "smooth" }); });
 
-/* ============ AUDIENCES (real, addressable voter slices — no invented issues) ===
-   Each audience is a defined slice of the file (age cohort or new registrant)
-   paired with the message that fits. Every number — size, persuadable U, party,
-   2024 turnout, age — is read straight from the SOTS file, per precinct. */
-const AUD = D.audiences, ADEFS = AUD.defs;
-const adist = id => AUD.district[id];
-const acell = (pid, id) => AUD.byPrecinct[pid][id];
-let aud = "older", iSel = beach.id, IMAP, ilayer;
+/* ============ PROFILES — how each precinct is genuinely DIFFERENT ===========
+   Every signal is real, read from the SOTS file per precinct, shown against the
+   district average so the contrasts (not the similarities) drive targeting. */
+const PR = D.profiles, PMET = PR.metrics, PDIST = PR.district;
+const pmeta = id => PMET.find(m => m.id === id);
+const pval = (pid, id) => PR.byPrecinct[pid][id];
+const pdelta = (pid, id) => Math.round((pval(pid, id) - PDIST[id]) * 10) / 10;
+const fdelta = d => (d > 0 ? "+" : "") + d;            // signed
+/* metrics surfaced as map chips (the matrix below shows all of them) */
+const MAPMETRICS = ["turnout24", "dropoff", "vbm", "early", "newmover", "solo", "rep"];
+/* a one-line targeting play per precinct, grounded in its real standouts */
+const PLAY = {
+  "004": "Renter-heavy, youngest and lowest-turnout — they live alone and move often. Register and re-register, chase early-vote, and reach voters individually (not by household). Persuasion volume is here; reliability isn't.",
+  "005": "The Election-Day precinct — fewest mail/early voters and the steadiest midterm turnout. Run a classic GOTV-day + persuasion mix, and lean on its slightly stronger Republican lean among the swing turf.",
+  "006": "Stable family homeowners, oldest and highest-turnout — few new movers, few singles. This is the beachhead: persuade whole households at the door, bank the reliable vote, and don't overspend on GOTV that's already baked in.",
+};
+let pmetric = "turnout24", iSel = beach.id, IMAP, ilayer;
 
-$("#ichips").innerHTML = ADEFS.map(a => `<button class="ichip ${a.id === aud ? "on" : ""}" data-i="${a.id}">${a.name}</button>`).join("");
-$("#ichips").querySelectorAll(".ichip").forEach(b => b.onclick = () => {
-  aud = b.dataset.i;
-  $("#ichips").querySelectorAll(".ichip").forEach(x => x.classList.toggle("on", x === b));
-  audDetail();
-});
-function curAud() { return ADEFS.find(a => a.id === aud); }
-function buildIssueMap() { IMAP = baseMap("imap"); paintAud(); }
-
-function paintAud() {
-  if (!IMAP) return;
-  if (ilayer) IMAP.removeLayer(ilayer);
-  const shares = P.map(p => 100 * acell(p.id, aud).persuade / p.active);
-  const lo = Math.min(...shares), hi = Math.max(...shares);
-  ilayer = L.geoJSON(D.geo, {
-    style: f => {
-      const p = pById(f.properties.id), s = 100 * acell(p.id, aud).persuade / p.active;
-      return { fillColor: seq(s, lo - 1, hi + 1, [212, 160, 23]), fillOpacity: f.properties.id === iSel ? .92 : .74, color: f.properties.id === iSel ? "#fff" : "#06111F", weight: f.properties.id === iSel ? 2.5 : 1.4 };
-    },
-    onEachFeature: (f, lyr) => {
-      const p = pById(f.properties.id);
-      lyr.bindTooltip(`<span class="plabel">${p.name}<br>${fmt(acell(p.id, aud).persuade)}</span>`, { permanent: true, direction: "center", className: "plabel-wrap" });
-      lyr.on({
-        mouseover: e => e.target.setStyle({ weight: 3, color: "#22AABC" }),
-        mouseout: () => paintAud(),
-        click: () => { iSel = p.id; paintAud(); audDetail(); }
-      });
-    }
-  }).addTo(IMAP);
-  $("#ilegend").innerHTML = `<div class="kick">${curAud().name} · persuadable U</div><div class="row"><i style="background:${seq(lo, lo - 1, hi + 1, [212, 160, 23])}"></i>fewer per door</div><div class="row"><i style="background:${seq(hi, lo - 1, hi + 1, [212, 160, 23])}"></i>more per door</div>`;
+/* ---- DNA cards: each precinct's distinct fingerprint ---- */
+function dnaCards() {
+  $("#dna").innerHTML = [...P].sort((a, b) => pval(b.id, "turnout24") - pval(a.id, "turnout24")).map(p => {
+    const r = ROLE[p.id], st = PR.standouts[p.id];
+    const chips = st.map(s => {
+      const up = s.delta > 0, neutral = pmeta(s.id).good === "neutral";
+      const col = neutral ? "var(--fg)" : (pmeta(s.id).good === "high" ? (up ? "var(--good)" : "var(--rep)") : "var(--fg)");
+      return `<div class="dstat" style="border-bottom:1px solid var(--border);padding-bottom:6px"><span>${pmeta(s.id).label}</span><b><span style="color:var(--fg)">${s.value}%</span> <span style="color:${col};font-size:12px">${fdelta(s.delta)}</span></b></div>`;
+    }).join("");
+    return `<div class="pc" data-pid="${p.id}" style="border-top-color:${r.fill};cursor:pointer">
+      <div class="pch"><span class="pcn">${p.name}</span><span class="role" style="color:${r.col};background:rgba(255,255,255,.05);border:1px solid ${r.col}">${r.tag}</span></div>
+      <div class="pcv" style="color:${r.col}">${pval(p.id, "turnout24")}%</div><div class="pcl">2024 turnout · ${fdelta(pdelta(p.id, "turnout24"))} vs district</div>
+      <div style="margin-top:14px">${chips}</div>
+      <p style="font-size:12px;color:var(--fg-muted);line-height:1.5;margin-top:13px">${PLAY[p.id]}</p></div>`;
+  }).join("");
+  $("#dna").querySelectorAll(".pc").forEach(el => el.onclick = () => { iSel = el.dataset.pid; profileDetail(); });
 }
 
-function audDetail() {
-  const def = curAud(), dd = adist(aud);
-  $("#is-v").textContent = fmt(dd.persuade);
-  $("#is-l").textContent = def.name + " · persuadable";
-  $("#is-s").innerHTML = `<b style="color:var(--fg)">${fmt(dd.aud)}</b> voters · <b style="color:var(--fg)">${fmt(dd.persuade)}</b> unaffiliated to move. Message: <b style="color:var(--gold-lt)">${def.msg}</b>.`;
+/* ---- map chips + clickable signal map ---- */
+$("#ichips").innerHTML = MAPMETRICS.map(id => `<button class="ichip ${id === pmetric ? "on" : ""}" data-i="${id}">${pmeta(id).label}</button>`).join("");
+$("#ichips").querySelectorAll(".ichip").forEach(b => b.onclick = () => {
+  pmetric = b.dataset.i;
+  $("#ichips").querySelectorAll(".ichip").forEach(x => x.classList.toggle("on", x === b));
+  profileDetail();
+});
+function buildIssueMap() { IMAP = baseMap("imap"); paintProfile(); }
 
-  const p = pById(iSel), r = ROLE[p.id], c = acell(p.id, aud);
-  const bar = (l, v, d, col) => `<div class="bar"><div class="bt"><span>${l}</span><b>${fmt(v)} · ${pct(v, d)}%</b></div><div class="track"><i style="width:${pct(v, d)}%;background:${col}"></i></div></div>`;
+function paintProfile() {
+  if (!IMAP) return;
+  if (ilayer) IMAP.removeLayer(ilayer);
+  const vals = P.map(p => pval(p.id, pmetric)), lo = Math.min(...vals), hi = Math.max(...vals);
+  ilayer = L.geoJSON(D.geo, {
+    style: f => { const p = pById(f.properties.id); return { fillColor: seq(pval(p.id, pmetric), lo - .5, hi + .5, [212, 160, 23]), fillOpacity: f.properties.id === iSel ? .92 : .74, color: f.properties.id === iSel ? "#fff" : "#06111F", weight: f.properties.id === iSel ? 2.5 : 1.4 }; },
+    onEachFeature: (f, lyr) => {
+      const p = pById(f.properties.id);
+      lyr.bindTooltip(`<span class="plabel">${p.name}<br>${pval(p.id, pmetric)}%</span>`, { permanent: true, direction: "center", className: "plabel-wrap" });
+      lyr.on({ mouseover: e => e.target.setStyle({ weight: 3, color: "#22AABC" }), mouseout: () => paintProfile(), click: () => { iSel = p.id; paintProfile(); profileDetail(); } });
+    }
+  }).addTo(IMAP);
+  $("#ilegend").innerHTML = `<div class="kick">${pmeta(pmetric).label} · % by precinct</div><div class="row"><i style="background:${seq(lo, lo - .5, hi + .5, [212, 160, 23])}"></i>lower</div><div class="row"><i style="background:${seq(hi, lo - .5, hi + .5, [212, 160, 23])}"></i>higher</div>`;
+}
+
+function profileDetail() {
+  const mt = pmeta(pmetric);
+  $("#is-v").textContent = PDIST[pmetric] + "%";
+  $("#is-l").textContent = mt.label + " · district avg";
+  $("#is-s").innerHTML = mt.desc;
+
+  const p = pById(iSel), r = ROLE[p.id];
   $("#idetail").innerHTML =
     `<div class="top"><span class="pn">${p.name}</span><span class="role" style="color:${r.col};background:rgba(124,58,237,.12);border:1px solid ${r.col}">${r.tag}</span></div>
-     <div class="kick" style="margin-top:3px">${def.name} · ${def.who}</div>
-     <div class="dstat" style="margin-top:12px"><span>Audience size</span><b>${fmt(c.aud)} · ${pct(c.aud, p.active)}% of precinct</b></div>
-     <div class="bars" style="margin-top:10px">
-       ${bar("Unaffiliated (persuade)", c.persuade, c.aud, "var(--npa)")}
-       ${bar("Democratic", c.D, c.aud, "var(--dem)")}
-       ${bar("Republican", c.R, c.aud, "var(--rep)")}
-     </div>
-     <div class="dstat" style="margin-top:12px"><span>Voted 2024</span><b>${c.v24_pct}% · ${fmt(c.v24)} of ${fmt(c.aud)}</b></div>
-     <div class="dstat"><span>Avg age</span><b>${c.avg_age}</b></div>
-     <div class="kick" style="margin-top:13px;margin-bottom:6px">Persuadable U by precinct — click the map</div>
-     ${[...P].sort((a, b) => acell(b.id, aud).persuade - acell(a.id, aud).persuade).map(pp => {
-        const on = pp.id === iSel;
-        return `<div class="dstat" style="border-bottom:1px solid var(--border);padding-bottom:7px;cursor:pointer;${on ? "background:rgba(212,160,23,.08)" : ""}" data-pid="${pp.id}"><span><b style="font-family:var(--disp);font-size:14px;color:${on ? "var(--gold-lt)" : "var(--fg)"}">${pp.name}</b> <span style="color:var(--fg-dim)">· ${ROLE[pp.id].tag}</span></span><b style="color:var(--gold-lt)">${fmt(acell(pp.id, aud).persuade)}</b></div>`;
-      }).join("")}`;
-  $("#idetail").querySelectorAll("[data-pid]").forEach(el => el.onclick = () => { iSel = el.dataset.pid; paintAud(); audDetail(); });
-  $("#inote").innerHTML = `<b>How to read this:</b> the voter file holds no issue opinions, so none are invented. Each audience is a real slice of the file — an age cohort or recent registrant — and the message is the one that demographically fits. Every count (size, unaffiliated, party, 2024 turnout, age) is read straight from the SOTS file, per precinct. Pair with canvass or survey data to confirm which message lands hardest.`;
-  paintAud();
+     <div class="kick" style="margin-top:3px">Precinct ${p.id} · ${fmt(p.active)} active</div>
+     <div class="dstat" style="margin-top:12px"><span>${mt.label}</span><b>${pval(p.id, pmetric)}% <span style="color:var(--fg-muted);font-size:12px">(${fdelta(pdelta(p.id, pmetric))} vs district)</span></b></div>
+     <div class="kick" style="margin-top:14px;margin-bottom:6px">All three on this signal — click the map</div>
+     ${[...P].sort((a, b) => pval(b.id, pmetric) - pval(a.id, pmetric)).map(pp => {
+        const on = pp.id === iSel, d = pdelta(pp.id, pmetric);
+        return `<div class="dstat" style="border-bottom:1px solid var(--border);padding-bottom:7px;cursor:pointer;${on ? "background:rgba(212,160,23,.08)" : ""}" data-pid="${pp.id}"><span><b style="font-family:var(--disp);font-size:14px;color:${on ? "var(--gold-lt)" : "var(--fg)"}">${pp.name}</b></span><b><span style="color:var(--gold-lt)">${pval(pp.id, pmetric)}%</span> <span style="color:var(--fg-dim);font-size:12px">${fdelta(d)}</span></b></div>`;
+      }).join("")}
+     <div class="kick" style="margin-top:14px;margin-bottom:6px">${p.name} — top contrasts</div>
+     ${PR.standouts[p.id].map(s => `<div class="dstat"><span>${pmeta(s.id).label}</span><b>${s.value}% <span style="color:var(--fg-muted);font-size:12px">${fdelta(s.delta)}</span></b></div>`).join("")}`;
+  $("#idetail").querySelectorAll("[data-pid]").forEach(el => el.onclick = () => { iSel = el.dataset.pid; paintProfile(); profileDetail(); });
+  paintProfile();
+}
+
+/* ---- side-by-side matrix: every signal vs the district average ---- */
+function buildProfileMatrix() {
+  const ord = [...P].sort((a, b) => b.active - a.active);
+  let html = `<div class="mrow head"><div class="mc">Signal · vs district</div>${ord.map(p => `<div class="mc">${p.name}</div>`).join("")}<div class="mc">District</div></div>`;
+  PMET.forEach(mt => {
+    const deltas = ord.map(p => Math.abs(pdelta(p.id, mt.id))), mx = Math.max(...deltas, 0.1);
+    html += `<div class="mrow"><div class="mc"><span class="iname">${mt.label}</span><span class="iaud">${mt.desc}</span></div>` +
+      ord.map(p => {
+        const v = pval(p.id, mt.id), d = pdelta(p.id, mt.id);
+        const tint = d === 0 ? "rgba(255,255,255,.04)" : (mt.good === "high" ? (d > 0 ? "rgba(52,211,153,.20)" : "rgba(224,85,85,.18)") : "rgba(124,58,237,.18)");
+        const dcol = mt.good === "high" ? (d > 0 ? "var(--good)" : "var(--rep)") : "var(--fg-muted)";
+        return `<div class="mc cell"><div class="fillbg" style="width:${Math.round(100 * Math.abs(d) / mx)}%;background:${tint}"></div><div class="cv">${v}%</div><div class="cs" style="color:${dcol}">${fdelta(d)} vs dist</div></div>`;
+      }).join("") +
+      `<div class="mc" style="justify-content:center"><span class="num" style="font-size:17px;color:var(--fg-muted)">${PDIST[mt.id]}%</span></div></div>`;
+  });
+  $("#pmatrix").innerHTML = html;
+  $("#inote").innerHTML = `<b>How to read this:</b> every figure is real, computed from the SOTS file for each precinct and shown against the district average. <b>Turnout/Republican/Unaffiliated</b> are tinted green above average, red below; behavioral signals (method, age, movers, household) are tinted by how far they swing from the norm. Method shares (mail/early/Election-Day) are of each precinct's 2024 voters. This is the contrast that should drive a precinct-by-precinct plan — pair with canvass or commercial/Census overlays to go deeper.`;
 }
 
 /* ============ UNIVERSE (turnout segments — all real from the file) ============ */
@@ -328,5 +359,5 @@ $("#plays").innerHTML = [
 $("#foot").innerHTML = `<b>Source:</b> Connecticut SOTS voter file — ${fmt(T.active)} active registrants in HD-10 (East Hartford precincts 004 · 005 · 006). Precinct boundaries: U.S. Census 2020 voting districts. Party, turnout and age computed from the file; issue audiences modeled from age structure. No individual voter records are shown or published.`;
 
 /* boot */
-paint(); detail(); audDetail();
+paint(); detail(); dnaCards(); profileDetail(); buildProfileMatrix();
 })();

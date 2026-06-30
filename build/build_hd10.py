@@ -23,7 +23,7 @@ from __future__ import annotations
 import csv
 import json
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 
@@ -37,6 +37,7 @@ CURRENT_YEAR = 2026
 # --- column indices (verified against the file header) -----------------------
 C = {
     "voter_id": 0, "status": 7, "dist": 10, "poll": 15,
+    "addr_num": 20, "addr_unit": 21, "street": 22, "town": 23,
     "birth_year": 37, "party": 39, "gender": 41, "reg_date": 42,
 }
 HIST_START = 43  # repeating (DATE, TYPE, ABSENTEE) triples to col 102
@@ -105,23 +106,31 @@ def load_voters():
             gens = set()           # which of the 4 target generals voted
             voted_local = False    # any S/R/T/P participation
             ever = False
+            method24 = None        # how they cast the 2024 general: N/E/Y
             for i in range(HIST_START, min(len(row), 103), 3):
                 date = clean(row[i])
                 if not date:
                     continue
                 ever = True
                 etype = clean(row[i + 1]).upper() if i + 1 < len(row) else ""
+                method = clean(row[i + 2]).upper() if i + 2 < len(row) else ""
                 if etype == "E" and date in GEN_DATES:
                     gens.add(GEN_DATES[date])
+                    if GEN_DATES[date] == 2024:
+                        method24 = method if method in ("N", "E", "Y") else "N"
                 if etype in LOCAL_TYPES:
                     voted_local = True
+
+            # household key (street address) for household-size signals
+            hh = "|".join(clean(row[C[k]]).upper() for k in
+                          ("addr_num", "addr_unit", "street", "town"))
 
             voters.append({
                 "dist": clean(row[C["dist"]]),
                 "party": party, "gender": gender, "age": age,
                 "abucket": age_bucket(age), "reg_year": reg_year,
                 "gens": gens, "voted_local": voted_local, "ever": ever,
-                "v24": 2024 in gens,
+                "v24": 2024 in gens, "method24": method24, "hh": hh,
             })
     return voters
 
@@ -263,6 +272,84 @@ def audience_rows(voters):
     return data
 
 
+# --- precinct PROFILES: what actually makes each precinct different -----------
+# Every metric is real and read from the file, per precinct, vs the district
+# average — so the differences (not the similarities) drive the targeting.
+PROFILE_METRICS = [
+    {"id": "turnout24", "label": "2024 turnout",      "unit": "%", "good": "high",
+     "desc": "Share of active voters who cast a 2024 general ballot — baseline reliability."},
+    {"id": "dropoff",   "label": "Midterm drop-off",  "unit": "%", "good": "gotv",
+     "desc": "Voted a presidential ('20 or '24) but skipped the '22 midterm — the 2026 GOTV pool."},
+    {"id": "vbm",       "label": "Vote-by-mail",      "unit": "%", "good": "neutral",
+     "desc": "Of 2024 voters, share who voted absentee/by-mail — chase with a ballot program."},
+    {"id": "early",     "label": "Early in-person",   "unit": "%", "good": "neutral",
+     "desc": "Of 2024 voters, share who voted early in person."},
+    {"id": "eday",      "label": "Election Day",      "unit": "%", "good": "neutral",
+     "desc": "Of 2024 voters, share who showed up on Election Day — a turnout-day program."},
+    {"id": "young",     "label": "Under 35",          "unit": "%", "good": "neutral",
+     "desc": "Share of active voters age 18–34."},
+    {"id": "senior",    "label": "Age 65+",           "unit": "%", "good": "neutral",
+     "desc": "Share of active voters age 65 and older."},
+    {"id": "newmover",  "label": "New movers",        "unit": "%", "good": "neutral",
+     "desc": "Registered 2023 or later — persuadable, not yet anchored."},
+    {"id": "solo",      "label": "Single-voter homes","unit": "%", "good": "neutral",
+     "desc": "Live alone on the file (no other active voter at the address) — renters / churn."},
+    {"id": "unaff",     "label": "Unaffiliated",      "unit": "%", "good": "high",
+     "desc": "Unaffiliated share — the persuasion pool."},
+    {"id": "rep",       "label": "Republican",        "unit": "%", "good": "high",
+     "desc": "Republican registration share — the base."},
+]
+
+
+def profiles(voters):
+    # household sizes (active voters share an address)
+    hh_size = Counter(v["hh"] for v in voters)
+
+    def metrics_for(vs):
+        n = len(vs)
+        if not n:
+            return {}
+        voted24 = [v for v in vs if v["method24"]]
+        nv = len(voted24)
+        pres_not_mid = sum(1 for v in vs if (2020 in v["gens"] or 2024 in v["gens"])
+                           and 2022 not in v["gens"])
+        return {
+            "active": n,
+            "turnout24": pct(sum(v["v24"] for v in vs), n),
+            "dropoff": pct(pres_not_mid, n),
+            "vbm": pct(sum(v["method24"] == "Y" for v in voted24), nv),
+            "early": pct(sum(v["method24"] == "E" for v in voted24), nv),
+            "eday": pct(sum(v["method24"] == "N" for v in voted24), nv),
+            "young": pct(sum(v["age"] is not None and v["age"] < 35 for v in vs), n),
+            "senior": pct(sum(v["age"] is not None and v["age"] >= 65 for v in vs), n),
+            "newmover": pct(sum(bool(v["reg_year"]) and v["reg_year"] >= 2023 for v in vs), n),
+            "solo": pct(sum(hh_size[v["hh"]] == 1 for v in vs), n),
+            "unaff": pct(sum(v["party"] == "U" for v in vs), n),
+            "rep": pct(sum(v["party"] == "R" for v in vs), n),
+            "avg_age": round(sum(v["age"] for v in vs if v["age"] is not None)
+                             / max(1, sum(v["age"] is not None for v in vs))),
+        }
+
+    district = metrics_for(voters)
+    by_precinct = {pid: metrics_for([v for v in voters if v["dist"] == pid])
+                   for pid in PRECINCT_NAMES}
+
+    # auto-detect each precinct's biggest deviations from the district average
+    standouts = {}
+    for pid, m in by_precinct.items():
+        devs = []
+        for mt in PROFILE_METRICS:
+            d = m[mt["id"]] - district[mt["id"]]
+            devs.append((abs(d), d, mt))
+        devs.sort(reverse=True)
+        standouts[pid] = [{"id": mt["id"], "label": mt["label"],
+                           "delta": round(d, 1), "value": m[mt["id"]]}
+                          for _, d, mt in devs[:3]]
+
+    return {"metrics": PROFILE_METRICS, "district": district,
+            "byPrecinct": by_precinct, "standouts": standouts}
+
+
 def main():
     voters = load_voters()
     print(f"loaded {len(voters):,} active voters")
@@ -272,7 +359,7 @@ def main():
     seg_by_precinct = {pid: summarize_segments([v for v in voters if v["dist"] == pid])
                        for pid in PRECINCT_NAMES}
 
-    audiences = audience_rows(voters)
+    prof = profiles(voters)
 
     # merge into existing window.HD10 without disturbing the rest
     js = (DATA_DIR / "hd10.js").read_text()
@@ -285,8 +372,9 @@ def main():
         "district": seg_district,
         "byPrecinct": seg_by_precinct,
     }
-    payload["audiences"] = audiences
-    payload.pop("issues", None)  # superseded by real message audiences
+    payload["profiles"] = prof
+    payload.pop("issues", None)      # superseded long ago
+    payload.pop("audiences", None)   # superseded by precinct profiles
 
     (DATA_DIR / "hd10.js").write_text(
         "window.HD10 = " + json.dumps(payload, separators=(",", ":")) + ";\n")
@@ -298,6 +386,21 @@ def main():
         print(f"  {d['label']:<26} {d['n']:>6,}  {d['pct']:>5}%  "
               f"age {d['avg_age']}  D{d['party_pct']['D']} U{d['party_pct']['U']} R{d['party_pct']['R']}")
     print(f"  total {seg_district['_total']:,}")
+
+    print("\nPrecinct profiles (value · Δ vs district):")
+    hdr = "  " + "metric".ljust(18) + "dist " + "".join(
+        f"{PRECINCT_NAMES[p][:10]:>14}" for p in PRECINCT_NAMES)
+    print(hdr)
+    for mt in prof["metrics"]:
+        row = f"  {mt['label']:<18}{prof['district'][mt['id']]:>4}"
+        for p in PRECINCT_NAMES:
+            v = prof["byPrecinct"][p][mt["id"]]
+            d = v - prof["district"][mt["id"]]
+            row += f"   {v:>5}({d:+.0f})"
+        print(row)
+    for p in PRECINCT_NAMES:
+        tags = ", ".join(f"{s['label']} {s['delta']:+.0f}" for s in prof["standouts"][p])
+        print(f"  {PRECINCT_NAMES[p]} stands out: {tags}")
 
 
 if __name__ == "__main__":
