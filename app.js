@@ -428,9 +428,16 @@ const distTotals = e => hasBP(e)
   ? Object.values(e.bp).reduce((a, [d, r]) => ({ d: a.d + d, r: a.r + r }), { d: 0, r: 0 })
   : null;
 const margin = (d, r) => (d + r) ? Math.round(100 * (d - r) / (d + r)) : 0;
+// Sequential ramp: light = closer race, deep = safer. Blue for D, red for R.
+const HIST_DOM = [8, 58];               // margin (pts) mapped across the ramp
+const D_RAMP = [[224, 238, 255], [21, 46, 130]];   // pale blue -> deep navy-blue
+const R_RAMP = [[255, 226, 224], [120, 18, 18]];   // pale red  -> deep red
 function marginColor(m) {
-  if (m == null) return "#3A4658";
-  return m >= 0 ? fillSeq(m, 2, 60, hex2rgb(C.demLt)) : fillSeq(-m, 2, 60, hex2rgb(C.repLt));
+  if (m == null) return "#33415A";
+  const [lo, hi] = HIST_DOM;
+  const t = Math.max(0, Math.min(1, (Math.abs(m) - lo) / (hi - lo)));
+  const [a, b] = m >= 0 ? D_RAMP : R_RAMP;
+  return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(",")})`;
 }
 
 function renderHistory() {
@@ -482,7 +489,7 @@ function paintHistMap() {
     },
   }).addTo(histMap);
   legend($("#hist-legend"), `${HRES.meta[histOffice].label} ${histYear} · D margin`,
-    hasBP(e) ? [[fillSeq(55, 2, 60, hex2rgb(C.demLt)), "Stronger D"], [fillSeq(8, 2, 60, hex2rgb(C.demLt)), "Closer"]] : [["#3A4658", "Result pending"]]);
+    hasBP(e) ? [[marginColor(10), "Closer · D+10"], [marginColor(33), "Lean · D+33"], [marginColor(55), "Safer · D+55"]] : [["#33415A", "Result pending"]]);
 }
 function renderHistResult() {
   const e = histEntry(), meta = HRES.meta[histOffice], tot = distTotals(e);
