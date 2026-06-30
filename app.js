@@ -208,37 +208,41 @@ const pLocked = p => segP(p.id).core.n + segP(p.id).strong.n;
 const pPersuade = p => segP(p.id).medium.party.U + segP(p.id).recent.party.U + segP(p.id).sporadic.party.U;
 const pReact = p => segP(p.id).sporadic.n + segP(p.id).dormant.n;
 
-/* ---- the two clear numbers: how much of MY universe is locked-in turnout ----
-   crosses the Republican Target Universe (window.HD10_TARGET) with the locked-in
-   (3-4 of 4 generals) segment, so you can see how reliable your chase list is. */
+/* ---- the 2026 math: how many turn out, and how many of MY targets are in it --
+   Ties projected turnout (D.win) to the Republican Target Universe and its
+   propensity makeup (window.HD10_TARGET), so turnout vs target is explicit. */
 (function uCross() {
-  const T = window.HD10_TARGET;
-  if (!T || !T.universe_turnout) return;
-  const ut = T.universe_turnout, other = Math.round((100 - T.locked_in_pct) * 10) / 10;
+  const T = window.HD10_TARGET, W = D.win;
+  if (!T || !T.universe_turnout || !W) return;
+  const ut = T.universe_turnout;
+  const likely = T.projected_vote;                 // target voters likely to vote (>=2 of 4)
   const seg = (o, col, lbl) => `<i style="width:${o.pct}%;background:${col}" title="${lbl} ${o.pct}%">${o.pct >= 12 ? o.pct + "%" : ""}</i>`;
   const big = (v, l, s, col) => `<div style="flex:1;min-width:210px">
-      <div class="num" style="font-size:62px;line-height:.88;color:${col}">${v}</div>
+      <div class="num" style="font-size:60px;line-height:.88;color:${col}">${v}</div>
       <div style="font-family:var(--disp);font-weight:600;font-size:13px;letter-spacing:1.2px;text-transform:uppercase;color:var(--fg);margin-top:7px">${l}</div>
       <div style="font-size:12.5px;color:var(--fg-muted);margin-top:5px;line-height:1.45">${s}</div>
     </div>`;
   $("#u-cross").innerHTML =
     `<div style="background:linear-gradient(160deg,rgba(212,160,23,.17),rgba(15,33,64,.55));border:1px solid rgba(212,160,23,.34);border-radius:var(--r);padding:22px 24px;margin-bottom:14px">
-       <div class="kick" style="margin-bottom:16px">Your Target Universe × locked-in turnout</div>
+       <div class="kick" style="margin-bottom:16px">The 2026 math — who turns out, who you target</div>
        <div style="display:flex;gap:26px;align-items:center;flex-wrap:wrap">
-         ${big(fmt(T.locked_in), "Locked-in voters in your universe", "Voted 3–4 of the last 4 generals — they turn out no matter what.", "var(--gold-lt)")}
-         <div style="width:1px;align-self:stretch;background:var(--border-lt);min-height:88px"></div>
-         ${big(T.locked_in_pct + "%", "of your " + fmt(T.target_size) + "-voter universe", "The other " + other + "% (" + fmt(T.target_size - T.locked_in) + " voters) need persuasion or a turnout push.", "var(--gold-lt)")}
+         ${big("~" + fmt(W.projected2026), "Will turn out in 2026", "Projected midterm turnout. Last midterm (’22): " + fmt(W.turnout2022) + " · last presidential (’24): " + fmt(W.turnout2024) + ".", "var(--fg)")}
+         <div style="width:1px;align-self:stretch;background:var(--border-lt);min-height:96px"></div>
+         ${big(fmt(likely), "Your targets in that turnout", "Of your " + fmt(T.target_size) + "-voter target universe, the " + fmt(likely) + " who are likely to vote — the votes actually in play for you.", "var(--gold-lt)")}
+         <div style="width:1px;align-self:stretch;background:var(--border-lt);min-height:96px"></div>
+         ${big(fmt(W.win_number), "Votes to win", "50% + 1 of projected turnout — your finish line.", "var(--teal-lt)")}
        </div>
        <div style="margin-top:20px">
-         <div class="kick" style="margin-bottom:6px">Propensity makeup of your universe</div>
+         <div class="kick" style="margin-bottom:6px">Your ${fmt(T.target_size)} targets, by what it takes to get them to the polls</div>
          <div class="wbar" style="display:flex;height:22px">
            ${seg(ut.locked, "#D4A017", "Locked-in 3–4 of 4")}${seg(ut.mid, "#7C3AED", "Mid 2 of 4")}${seg(ut.low, "#E8943A", "Needs a push 0–1 of 4")}
          </div>
          <div style="display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:10px;font-size:11.5px;color:var(--fg-muted)">
-           <span style="display:flex;align-items:center;gap:6px"><i style="width:11px;height:11px;border-radius:2px;background:#D4A017"></i>Locked-in (3–4 of 4) · ${fmt(ut.locked.n)}</span>
-           <span style="display:flex;align-items:center;gap:6px"><i style="width:11px;height:11px;border-radius:2px;background:#7C3AED"></i>Mid-propensity (2 of 4) · ${fmt(ut.mid.n)}</span>
-           <span style="display:flex;align-items:center;gap:6px"><i style="width:11px;height:11px;border-radius:2px;background:#E8943A"></i>Needs a push (0–1 of 4) · ${fmt(ut.low.n)}</span>
+           <span style="display:flex;align-items:center;gap:6px"><i style="width:11px;height:11px;border-radius:2px;background:#D4A017"></i>Locked-in · will vote (3–4 of 4) · ${fmt(ut.locked.n)}</span>
+           <span style="display:flex;align-items:center;gap:6px"><i style="width:11px;height:11px;border-radius:2px;background:#7C3AED"></i>Likely · a nudge helps (2 of 4) · ${fmt(ut.mid.n)}</span>
+           <span style="display:flex;align-items:center;gap:6px"><i style="width:11px;height:11px;border-radius:2px;background:#E8943A"></i>Needs a real GOTV push (0–1 of 4) · ${fmt(ut.low.n)}</span>
          </div>
+         <div class="note" style="margin-top:14px"><b>Read it:</b> about <b>${fmt(W.projected2026)}</b> will vote, and you need <b>${fmt(W.win_number)}</b> to win. Your target universe puts <b>${fmt(likely)}</b> likely voters in play — just above the line, with <b>zero</b> slack — plus <b>${fmt(ut.low.n)}</b> lower-propensity targets you only get by turning them out. Hold the likely pool with persuasion; manufacture the margin with GOTV.</div>
        </div>
      </div>`;
 })();
