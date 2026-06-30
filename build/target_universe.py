@@ -93,6 +93,7 @@ def derive(df: pd.DataFrame) -> pd.DataFrame:
     gen_dates = set(GENERALS.values())
     voted_in = {y: pd.Series(False, index=df.index) for y in GENERALS}
     ever_voted = pd.Series(False, index=df.index)
+    v2025_local = pd.Series(False, index=df.index)   # 2025 municipal / local
 
     for dcol, tcol in zip(date_cols, type_cols):
         d = df[dcol].str.strip()
@@ -101,11 +102,14 @@ def derive(df: pd.DataFrame) -> pd.DataFrame:
         is_general = t.eq("E")
         for y, gd in GENERALS.items():
             voted_in[y] |= is_general & d.eq(gd)
+        # 2025 was an odd-year municipal cycle — any 2025 ballot = local turnout
+        v2025_local |= d.str.endswith("2025") & d.ne("")
 
     for y in GENERALS:
         df[f"V{y}"] = voted_in[y]
     df["GEN_COUNT"] = sum(voted_in[y].astype(int) for y in GENERALS)  # 0..4
     df["EVER_VOTED"] = ever_voted
+    df["V2025_LOCAL"] = v2025_local
     return df
 
 
@@ -142,10 +146,25 @@ def build_segments(df: pd.DataFrame) -> pd.DataFrame:
                 "seg_U_recent", "seg_U_newer", "seg_U_sel2"]
     df["IN_SEGMENT"] = df[seg_cols].any(axis=1)
 
-    # Turnout-universe rule: the target universe is ONLY people already likely
-    # to vote — voted >=2 of the last 4 generals. We are not doing turnout-lift
-    # (GOTV of low-propensity) analysis right now; that pool is deferred.
-    df["LIKELY"] = df["GEN_COUNT"].ge(2)
+    # Turnout-universe rule — "likely to vote" is ANY of:
+    #   • voted 4 of 4 recent generals (2018·2020·2022·2024)
+    #   • voted 3 of 4
+    #   • voted 2 of the last 3 generals (2020·2022·2024)
+    #   • voted 2 of the last 4 where at least one was a midterm (2018 or 2022)
+    #   • voted 2 of the last 2 (2022·2024)
+    #   • a new mover (registered in the last year or two) who voted the 2025 locals
+    g18, g20, g22, g24 = df["V2018"], df["V2020"], df["V2022"], df["V2024"]
+    n4 = df["GEN_COUNT"]
+    last3 = g20.astype(int) + g22.astype(int) + g24.astype(int)   # of 2020·2022·2024
+    midterm_voted = g18 | g22                                     # a midterm in their record
+    new_mover = df["REG_YEAR"].ge(CURRENT_YEAR - 2) & df["V2025_LOCAL"]
+    df["LIKELY"] = (
+        n4.ge(3)                                # 4/4 and 3/4
+        | last3.ge(2)                           # 2 of last 3 (also covers 2 of last 2)
+        | (n4.eq(2) & midterm_voted)            # 2 of last 4 incl. a midterm
+        | (g22 & g24)                           # 2 of the last 2, explicit
+        | new_mover                             # recent registrant who voted 2025 locals
+    )
     df["TARGET_UNIVERSE"] = df["IN_SEGMENT"] & df["ACTIVE"] & df["LIKELY"]
 
     # Everyone in the target universe is a likely (projected) voter by definition.
@@ -193,12 +212,13 @@ def report(df: pd.DataFrame, seg_cols: list[str]) -> dict:
             .rename(index=lambda k: f"{k} {PRECINCT_NAMES.get(k, '')}".strip())
             .to_dict())
 
-    # ---- propensity makeup of MY universe (cross target x turnout) ---------
-    # Locked-in = voted 3-4 of the last 4 generals (turn out no matter what).
+    # ---- propensity makeup of MY (likely-voter) universe -------------------
+    # Reliable = 3-4 of 4 generals; two-of = exactly 2 (the 2-of rules);
+    # new-mover = got in via the recent-registrant + 2025-local rule (<=1 general).
     gc = tgt["GEN_COUNT"]
-    locked = int((gc >= 3).sum())     # high-propensity, reliable
-    mid = int((gc == 2).sum())        # likely but not certain (2 of 4)
-    low = int((gc <= 1).sum())        # need a turnout push (0-1 of 4)
+    locked = int((gc >= 3).sum())     # reliable, turn out no matter what
+    mid = int((gc == 2).sum())        # likely 2-of voters
+    low = int((gc <= 1).sum())        # new movers (2025 locals)
 
     out = {
         "active_voters": n_active,

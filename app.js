@@ -309,11 +309,12 @@ function renderVoters() {
   </div>
 
   <div class="sec-head"><h2>Our Universe</h2><div class="note">${fmt(OUR_UNIVERSE)} likely-voter targets</div></div>
+  <div class="callout" style="margin-bottom:14px"><b>Likely to vote =</b> 4/4 or 3/4 recent generals · 2 of the last 3 (’20·’22·’24) · 2 of the last 4 incl. a midterm · 2 of the last 2 (’22·’24) · or a new mover (registered the last year or two) who voted the 2025 locals.</div>
   <div class="grid4">
-    ${statCard(C.tealLt, ut ? fmt(ut.locked.n) : "—", "Locked-In", `Voted 3–4 of the last 4 — turn out no matter what (${ut ? ut.locked.pct : 0}%).`)}
-    ${statCard(C.goldLt, ut ? fmt(ut.mid.n) : "—", "Mid-Propensity", `Voted 2 of 4 — likely, worth a reminder (${ut ? ut.mid.pct : 0}%).`)}
+    ${statCard(C.tealLt, ut ? fmt(ut.locked.n) : "—", "Reliable", `Voted 3–4 of the last 4 generals (${ut ? ut.locked.pct : 0}%).`)}
+    ${statCard(C.goldLt, ut ? fmt(ut.mid.n) : "—", "Likely · 2-of", `Two of the last 3/4, incl. a midterm or ’22+’24 (${ut ? ut.mid.pct : 0}%).`)}
+    ${statCard(C.npaLt, ut ? fmt(ut.low.n) : "—", "New Movers", `Recent registrants who voted the 2025 locals (${ut ? ut.low.pct : 0}%).`)}
     ${statCard(C.repLt, TG ? `${fmt(TG.party.R)}` : "—", "Republicans", `${TG ? TG.party_pct.R : 0}% of our universe.`)}
-    ${statCard(C.npaLt, TG ? `${fmt(TG.party.U)}` : "—", "Unaffiliated", `${TG ? TG.party_pct.U : 0}% — the persuasion pool.`)}
   </div>
 
   <div class="map-grid" style="margin-top:24px">
