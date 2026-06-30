@@ -59,26 +59,41 @@ const WIN = D.win.win_number;                          // 3,414 to win
 const COVERAGE = WIN ? Math.round(100 * OUR_UNIVERSE / WIN) : 0;
 const tgPrec = id => (TG && TG.precinct && TG.precinct[id]) || null;
 
-/* ── Sourced election history (CT SOTS / Ballotpedia / Wikipedia) ── */
-const HISTORY = {
-  recent: { year: 2024, d: { name: "Henry Genga", pct: 68.8 }, r: { name: "Chris Tierinni", pct: 31.2 } },
-  timeline: [
-    { year: 2024, win: "Genga (D)", sub: "68.8% – 31.2% vs Tierinni (R)" },
-    { year: 2022, win: "Genga (D)", sub: "Unopposed" },
-    { year: 2020, win: "Genga (D)", sub: "Re-elected" },
-    { year: 2018, win: "Genga (D)", sub: "Re-elected" },
-    { year: 2016, win: "Genga (D)", sub: "def. Simpson (R)" },
-  ],
-  held: "Democratic-held since 1998 — Henry Genga (D) since 2006, Melody Currey (D) 1998–2005.",
-  offices: [
-    { o: "President", lean: "Dem", color: C.dem, colorLt: C.demLt, s: "Harris (D) carried Connecticut in 2024; East Hartford votes strongly Democratic top-of-ticket." },
-    { o: "Governor", lean: "Dem", color: C.dem, colorLt: C.demLt, s: "Lamont (D) carried the area in 2018 and 2022." },
-    { o: "U.S. Senate", lean: "Dem", color: C.dem, colorLt: C.demLt, s: "Murphy and Blumenthal (D) win the region comfortably." },
-    { o: "U.S. House · CT-01", lean: "Dem", color: C.dem, colorLt: C.demLt, s: "John Larson (D) holds CT-01, which includes East Hartford." },
-    { o: "State Senate", lean: "Dem", color: C.dem, colorLt: C.demLt, s: "East Hartford's state senate seats are Democratic-held." },
-    { o: "State House · HD-10", lean: "Dem", color: C.rep, colorLt: C.repLt, s: "Genga (D) 68.8% vs Tierinni (R) 31.2% in 2024 — the seat in play.", firm: true },
-  ],
-  source: "Sources: CT Secretary of the State; Ballotpedia; Wikipedia (CT 10th assembly district).",
+/* ── Sourced election history (public results; precinct splits pending) ──
+   Levels: "district" = HD-10 seat; "town" = East Hartford town-wide.
+   Precinct-level (004/005/006) splits aren't in the public PDFs — when those
+   are supplied they drop straight into a `byPrecinct` field per year. */
+const HRES = {
+  order: ["statehouse", "president", "governor", "mayor"],
+  meta: {
+    statehouse: { label: "State House", level: "HD-10 district", source: "CT SOS · Ballotpedia" },
+    president:  { label: "President",   level: "East Hartford town", source: "Wikipedia (East Hartford, CT)" },
+    governor:   { label: "Governor",    level: "East Hartford town", source: "CT SOS" },
+    mayor:      { label: "Mayor",       level: "East Hartford town", source: "CT SOS · FOX61" },
+  },
+  statehouse: {
+    2024: { d: { n: "Genga", p: 68.8 }, r: { n: "Tierinni", p: 31.2 } },
+    2022: { d: { n: "Genga", p: 100 }, r: null, note: "Unopposed" },
+    2020: { d: { n: "Genga" }, r: null, note: "Re-elected — exact margin pending" },
+    2018: { d: { n: "Genga" }, r: null, note: "Re-elected — exact margin pending" },
+    2016: { d: { n: "Genga" }, r: { n: "Simpson" }, note: "D won — exact margin pending" },
+  },
+  president: {
+    2024: { d: { n: "Harris", p: 68.4, v: 12504 }, r: { n: "Trump", p: 30.4, v: 5550 }, o: 1.2 },
+    2020: { d: { n: "Biden", p: 71.8, v: 14787 }, r: { n: "Trump", p: 26.8, v: 5524 }, o: 1.4 },
+    2016: { d: { n: "Clinton", p: 69.2, v: 13180 }, r: { n: "Trump", p: 27.4, v: 5213 }, o: 3.4 },
+  },
+  governor: {
+    2022: { d: { n: "Lamont" }, r: { n: "Stefanowski" }, note: "D carried EH — town split pending" },
+    2018: { d: { n: "Lamont" }, r: { n: "Stefanowski" }, note: "D carried EH — town split pending" },
+  },
+  mayor: {
+    2025: { d: { n: "Martin" }, r: null, note: "D — result pending" },
+    2023: { d: { n: "Martin", p: 74.3, v: 3106 }, r: { n: "Davis", p: 25.7, v: 1204 } },
+    2021: { d: { n: "Walsh" }, r: null, note: "D elected — margin pending" },
+    2019: { d: { n: "Leclerc" }, r: null, note: "D — result pending" },
+    2017: { d: { n: "Leclerc" }, r: null, note: "D — result pending" },
+  },
 };
 
 /* ── Small builders ─────────────────────────────────────── */
@@ -399,49 +414,100 @@ function renderSignalTable() {
   $("#signal-table").innerHTML = `<thead><tr><th>Precinct</th><th>${m.label}</th><th>vs district</th></tr></thead><tbody>${rows}</tbody>`;
 }
 
-/* ════════════════════ HISTORY ════════════════════ */
+/* ════════════════════ HISTORY (mapped, by race) ════════════════════ */
+let histMap, histLayer, histOffice = "statehouse", histYear = 2024;
+const histYears = office => Object.keys(HRES[office]).map(Number).sort((a, b) => b - a);
+const histResult = () => HRES[histOffice][histYear];
+const histMargin = res => (res && res.d && res.r && res.d.p != null && res.r.p != null) ? res.d.p - res.r.p : null;
+
 function renderHistory() {
-  const H = HISTORY, rec = H.recent;
-  const turnout = [["2018", T.hist.y2018], ["2022", T.hist.y2022], ["2024", T.hist.y2024]];
-  const tmax = maxOf(turnout.map(x => x[1]));
   $("#tab-history").innerHTML = `
-  <div class="page-head"><h2>District History</h2><p>How HD-10 has voted — the state house seat, the partisan environment up and down the ballot, and turnout by cycle. High-level, with sources noted below.</p></div>
-
+  <div class="page-head"><h2>District History</h2><p>How the district has voted, by office and year. Results are shown at the level the public record provides — <strong>HD-10 district</strong> for the seat, <strong>East Hartford town</strong> for the rest. Precinct splits drop in when supplied.</p></div>
+  <div class="map-controls" style="position:static;margin-bottom:12px" id="hist-office"></div>
+  <div class="map-controls" style="position:static;margin-bottom:16px" id="hist-year"></div>
   <div class="map-grid">
-    <div class="panel-card card-accent" style="--accent:${C.dem}">
-      <div class="pc-top"><h3>The Seat · HD-10 State Rep</h3><span class="tag" style="color:${C.demLt}">Dem hold</span></div>
-      <div style="margin-top:16px">
-        <div class="hist-row"><div class="top"><span class="yr">${rec.year}</span><span class="res">${rec.d.name} (D) · ${rec.r.name} (R)</span></div>
-          <div class="dr-bar"><div class="d" style="width:${rec.d.pct}%">${rec.d.pct}%</div><div class="r" style="width:${rec.r.pct}%">${rec.r.pct}%</div></div></div>
-      </div>
-      <div class="rows" style="margin-top:18px">
-        ${H.timeline.slice(1).map(t => `<div class="drow"><span class="l"><b style="color:var(--fg);font-family:var(--ff-display);font-size:16px">${t.year}</b> &nbsp;${t.win}</span><span class="v" style="font-size:13px;color:var(--fg-muted);font-weight:400">${t.sub}</span></div>`).join("")}
-      </div>
-      <div class="callout" style="margin-top:16px"><b>${H.held}</b></div>
-    </div>
-
-    <div class="panel-card"><div class="pc-top"><h3>Turnout by Cycle</h3></div>
-      <div class="hist-bars" style="margin-top:16px">
-        ${turnout.map(([yr, n]) => `<div class="hist-row"><div class="top"><span class="yr">${yr}</span><span class="res">${fmt(n)} ballots</span></div>
-          <div class="track" style="height:14px"><i style="width:${Math.round(100 * n / tmax)}%;--accent:${yr === "2024" ? C.tealLt : C.muted}"></i></div></div>`).join("")}
-      </div>
-      <p style="color:var(--fg-dim);font-size:12px;line-height:1.5;margin-top:16px">Ballots cast within the active-voter universe. Presidential years (2024) draw far more than midterms (2018·2022).</p>
-    </div>
+    <div class="mapcard"><div class="lmap" id="hist-map"></div><div class="maplegend" id="hist-legend"></div></div>
+    <aside class="side"><div class="panel-card card-accent" id="hist-result" style="--accent:${C.dem}"></div></aside>
   </div>
+  <div class="sec-head"><h2>${HRES.meta[histOffice].label} — All Cycles</h2><div class="note">${HRES.meta[histOffice].level}</div></div>
+  <div class="table-wrap"><table class="tbl" id="hist-table"></table></div>
 
-  <div class="sec-head"><h2>All Levels — Partisan Environment</h2><div class="note">District lean by office</div></div>
-  <div class="grid3">
-    ${H.offices.map(o => `<div class="office-tile" style="--accent:${o.color};--accent-lt:${o.colorLt}">
-      <div class="o">${o.o}</div><div class="lean">${o.lean}${o.firm ? " · seat in play" : ""}</div><div class="s">${o.s}</div></div>`).join("")}
-  </div>
-
-  <div class="sec-head"><h2>Registration Environment</h2><div class="note">${fmt(T.active)} active</div></div>
+  <div class="sec-head"><h2>Turnout by Cycle</h2><div class="note">ballots on current rolls</div></div>
   <div class="panel-card">
-    ${bar("Democratic", T.party.D, T.active, C.demLt)}
-    ${bar("Unaffiliated", T.party.U, T.active, C.npaLt)}
-    ${bar("Republican", T.party.R, T.active, C.repLt)}
-    <div class="callout" style="margin-top:18px">${H.source} Precinct-exact President / Governor / U.S. House / U.S. Senate splits come from the SOTS Statement of Vote and can be layered in next.</div>
+    ${[["2018", T.hist.y2018], ["2022", T.hist.y2022], ["2024", T.hist.y2024]].map(([yr, n]) => {
+      const tmax = maxOf([T.hist.y2018, T.hist.y2022, T.hist.y2024]);
+      return `<div class="hist-row" style="margin-bottom:14px"><div class="top"><span class="yr">${yr}</span><span class="res">${fmt(n)} ballots</span></div>
+        <div class="track" style="height:14px"><i style="width:${Math.round(100 * n / tmax)}%;--accent:${yr === "2024" ? C.tealLt : C.muted}"></i></div></div>`;
+    }).join("")}
   </div>`;
+  renderHistControls();
+  renderHistResult();
+  renderHistTable();
+}
+function renderHistControls() {
+  $("#hist-office").innerHTML = HRES.order.map(o => `<button class="seg-btn ${o === histOffice ? "on" : ""}" data-ho="${o}" type="button">${HRES.meta[o].label}</button>`).join("");
+  $("#hist-year").innerHTML = histYears(histOffice).map(y => `<button class="seg-btn ${y === histYear ? "on" : ""}" data-hy="${y}" type="button">${y}</button>`).join("");
+  $$("[data-ho]").forEach(b => b.addEventListener("click", () => { histOffice = b.dataset.ho; histYear = histYears(histOffice)[0]; refreshHistory(); }));
+  $$("[data-hy]").forEach(b => b.addEventListener("click", () => { histYear = +b.dataset.hy; refreshHistory(); }));
+}
+function refreshHistory() {
+  renderHistControls(); paintHistMap(); renderHistResult(); renderHistTable();
+  const sh = $("#tab-history .sec-head h2"); if (sh) sh.textContent = `${HRES.meta[histOffice].label} — All Cycles`;
+}
+function buildHistMap() { histMap = baseMap("hist-map"); paintHistMap(); }
+function paintHistMap() {
+  if (!histMap) return;
+  if (histLayer) histMap.removeLayer(histLayer);
+  const res = histResult(), m = histMargin(res);
+  const color = m == null ? "#3A4658" : fillSeq(m, 0, 55, hex2rgb(C.demLt));
+  histLayer = L.geoJSON(D.geo, {
+    style: () => featureStyle(color, false),
+    onEachFeature: (f, layer) => {
+      const p = pById(f.properties.id);
+      const lbl = m == null ? "data pending" : `D +${Math.round(m)}`;
+      layer.bindTooltip(`<span class="plabel">${p.name}<br>${lbl}</span>`, { permanent: true, direction: "center", className: "plabel-wrap" });
+    },
+  }).addTo(histMap);
+  legend($("#hist-legend"), `${HRES.meta[histOffice].label} ${histYear} · ${HRES.meta[histOffice].level}`,
+    m == null ? [["#3A4658", "Result pending"]] : [[C.demLt, "Democratic margin"], ["#3A4658", "Precinct split pending"]]);
+}
+function renderHistResult() {
+  const res = histResult(), meta = HRES.meta[histOffice], m = histMargin(res);
+  const d = res.d || {}, r = res.r || {};
+  let body;
+  if (res.d && res.d.p != null && res.r && res.r.p != null) {
+    body = `<div class="hist-row" style="margin-top:6px"><div class="dr-bar" style="height:30px">
+        <div class="d" style="width:${d.p}%">${d.p}%</div><div class="r" style="width:${r.p}%">${r.p}%</div></div></div>
+      <div class="rows" style="margin-top:16px">
+        ${drow(`${d.n} (D)`, `${d.p}%${d.v ? " · " + fmt(d.v) : ""}`)}
+        ${drow(`${r.n} (R)`, `${r.p}%${r.v ? " · " + fmt(r.v) : ""}`)}
+        ${drow("Margin", `D +${Math.round(m)} pts`)}
+      </div>`;
+  } else {
+    body = `<div class="rows" style="margin-top:10px">
+        ${drow("Winner", `${d.n || "—"} (D)`)}
+        ${r.n ? drow("Opponent", `${r.n} (R)`) : ""}
+      </div>
+      <div class="callout" style="margin-top:14px">${res.note || "Result pending."}</div>`;
+  }
+  $("#hist-result").innerHTML = `<div class="pc-top"><div><h3>${meta.label} ${histYear}</h3>
+      <div class="kk" style="margin-top:5px">${meta.level}</div></div>
+      <span class="tag" style="color:${C.demLt}">Dem ${m != null ? "+" + Math.round(m) : "hold"}</span></div>
+    ${body}
+    <p style="color:var(--fg-dim);font-size:11.5px;line-height:1.5;margin-top:14px">Source: ${meta.source}. ${meta.level === "East Hartford town" ? "Town-wide figure; HD-10 precinct splits pending." : ""}</p>`;
+}
+function renderHistTable() {
+  const rows = histYears(histOffice).map(y => {
+    const res = HRES[histOffice][y], m = histMargin(res), d = res.d || {}, r = res.r || {};
+    const result = (res.d && res.d.p != null && res.r && res.r.p != null)
+      ? `<b>${d.p}%</b> – ${r.p}%`
+      : `<span style="color:var(--fg-muted)">${res.note || "pending"}</span>`;
+    return `<tr><td><b>${y}</b></td>
+      <td>${d.n || "—"} (D)${r.n ? " · " + r.n + " (R)" : ""}</td>
+      <td>${result}</td>
+      <td>${m != null ? `<span style="color:${C.demLt}">D +${Math.round(m)}</span>` : "—"}</td></tr>`;
+  }).join("");
+  $("#hist-table").innerHTML = `<thead><tr><th>Year</th><th>Candidates</th><th>Result</th><th>Margin</th></tr></thead><tbody>${rows}</tbody>`;
 }
 
 /* ════════════════════ BOOT ════════════════════ */
@@ -460,6 +526,7 @@ function wireTabs() {
       const id = tab.dataset.tab;
       if (id === "precincts") { if (!precinctMap) buildPrecinctMap(); refit(precinctMap); }
       if (id === "signals") { if (!signalMap) buildSignalMap(); refit(signalMap); }
+      if (id === "history") { if (!histMap) buildHistMap(); refit(histMap); }
     });
   });
 }
