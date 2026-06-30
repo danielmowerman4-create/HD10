@@ -47,6 +47,15 @@ GENERALS = {2024: "11/05/2024", 2022: "11/08/2022",
             2020: "11/03/2020", 2018: "11/06/2018"}
 GEN_DATES = {d: y for y, d in GENERALS.items()}
 
+# --- longer general-election history for the turnout-trend chart -------------
+# (presidential years marked so the chart can show the presidential/midterm saw)
+HISTORY_GENERALS = {
+    2016: ("11/08/2016", "pres"), 2018: ("11/06/2018", "mid"),
+    2020: ("11/03/2020", "pres"), 2022: ("11/08/2022", "mid"),
+    2024: ("11/05/2024", "pres"),
+}
+HIST_GEN_DATES = {d: y for y, (d, _) in HISTORY_GENERALS.items()}
+
 PRECINCT_NAMES = {"004": "Silver Lane", "005": "Hockanum", "006": "Goodwin"}
 LOCAL_TYPES = {"S", "R", "T", "P"}  # special / referendum / town / primary
 
@@ -104,6 +113,7 @@ def load_voters():
             reg_year = parse_year(clean(row[C["reg_date"]]))
 
             gens = set()           # which of the 4 target generals voted
+            hist_gens = set()      # which of the 2016-2024 generals voted (trend)
             voted_local = False    # any S/R/T/P participation
             ever = False
             method24 = None        # how they cast the 2024 general: N/E/Y
@@ -118,6 +128,8 @@ def load_voters():
                     gens.add(GEN_DATES[date])
                     if GEN_DATES[date] == 2024:
                         method24 = method if method in ("N", "E", "Y") else "N"
+                if etype == "E" and date in HIST_GEN_DATES:
+                    hist_gens.add(HIST_GEN_DATES[date])
                 if etype in LOCAL_TYPES:
                     voted_local = True
 
@@ -129,10 +141,32 @@ def load_voters():
                 "dist": clean(row[C["dist"]]),
                 "party": party, "gender": gender, "age": age,
                 "abucket": age_bucket(age), "reg_year": reg_year,
-                "gens": gens, "voted_local": voted_local, "ever": ever,
+                "gens": gens, "hist_gens": hist_gens,
+                "voted_local": voted_local, "ever": ever,
                 "v24": 2024 in gens, "method24": method24, "hh": hh,
             })
     return voters
+
+
+def turnout_history(voters):
+    """Per-precinct general-election ballots cast by voters CURRENTLY on the
+    rolls (the only history the file holds). Recent cycles are near-complete;
+    older ones undercount voters since removed — labelled as such in the UI."""
+    years = sorted(HISTORY_GENERALS)
+    by_precinct = {pid: {y: 0 for y in years} for pid in PRECINCT_NAMES}
+    district = {y: 0 for y in years}
+    for v in voters:
+        if v["dist"] not in PRECINCT_NAMES:
+            continue
+        for y in v["hist_gens"]:
+            by_precinct[v["dist"]][y] += 1
+            district[y] += 1
+    return {
+        "years": years,
+        "kind": {y: HISTORY_GENERALS[y][1] for y in years},
+        "byPrecinct": by_precinct,
+        "district": district,
+    }
 
 
 # --- turnout-universe segmentation (mutually exclusive) ----------------------
@@ -360,6 +394,7 @@ def main():
                        for pid in PRECINCT_NAMES}
 
     prof = profiles(voters)
+    hist = turnout_history(voters)
 
     # merge into existing window.HD10 without disturbing the rest
     js = (DATA_DIR / "hd10.js").read_text()
@@ -373,6 +408,7 @@ def main():
         "byPrecinct": seg_by_precinct,
     }
     payload["profiles"] = prof
+    payload["turnout_history"] = hist
     payload.pop("issues", None)      # superseded long ago
     payload.pop("audiences", None)   # superseded by precinct profiles
 

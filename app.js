@@ -307,7 +307,55 @@ function uPyramid() {
   $("#u-pnote").innerHTML = `<b>How to read this:</b> mutually-exclusive segments by participation in the last four general elections (2018 · 2020 · 2022 · 2024). Bars show party mix (<b style="color:var(--dem)">D</b> / <b style="color:var(--npa)">U</b> / <b style="color:var(--rep)">R</b>). Propensity climbs with age and Democratic lean — the lower-propensity groups are markedly more unaffiliated, which is exactly where a Republican has room. <b>Registered · No History</b> (${fmt(SD.dormant.n)}, ${SD.dormant.pct}%) is shown in the composition bar above but excluded from the ladder.`;
 }
 
-uPyramid(); uDetail();
+/* ---- historical turnout by precinct (SVG line chart, real from the file) ---- */
+function uHistory() {
+  const H = D.turnout_history;
+  if (!H) return;
+  const years = H.years, W = 920, Hh = 380, mL = 52, mR = 150, mT = 20, mB = 48;
+  const pw = W - mL - mR, ph = Hh - mT - mB;
+  const yMax = Math.ceil(Math.max(...P.map(p => Math.max(...years.map(y => H.byPrecinct[p.id][y])))) / 500) * 500;
+  const xOf = i => mL + (years.length === 1 ? pw / 2 : pw * i / (years.length - 1));
+  const yOf = v => mT + ph - ph * v / yMax;
+  const ord = [...P].sort((a, b) => b.active - a.active);  // Silver, Goodwin, Hockanum by size
+
+  let svg = `<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Historical general-election turnout by precinct">`;
+  // presidential-year shading + x grid
+  years.forEach((y, i) => {
+    if (H.kind[y] === "pres") svg += `<rect x="${xOf(i) - 26}" y="${mT}" width="52" height="${ph}" fill="rgba(255,255,255,.025)"/>`;
+  });
+  // y gridlines + labels
+  for (let g = 0; g <= yMax; g += 1000) {
+    svg += `<line x1="${mL}" y1="${yOf(g)}" x2="${mL + pw}" y2="${yOf(g)}" stroke="rgba(255,255,255,.07)"/>`;
+    svg += `<text class="clab" x="${mL - 8}" y="${yOf(g) + 4}" text-anchor="end">${fmt(g)}</text>`;
+  }
+  // x labels (year + pres/mid)
+  years.forEach((y, i) => {
+    svg += `<text class="cyr" x="${xOf(i)}" y="${mT + ph + 22}" text-anchor="middle">${y}</text>`;
+    svg += `<text class="ckind" x="${xOf(i)}" y="${mT + ph + 36}" text-anchor="middle">${H.kind[y] === "pres" ? "PRESIDENTIAL" : "MIDTERM"}</text>`;
+  });
+  // one line per precinct
+  ord.forEach(p => {
+    const col = ROLE[p.id].fill;
+    const pts = years.map((y, i) => [xOf(i), yOf(H.byPrecinct[p.id][y])]);
+    svg += `<polyline points="${pts.map(pt => pt.join(",")).join(" ")}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    pts.forEach(([x, yv], i) => {
+      const pres = H.kind[years[i]] === "pres";
+      svg += `<circle cx="${x}" cy="${yv}" r="${pres ? 5 : 3.5}" fill="${pres ? col : "var(--navy-card)"}" stroke="${col}" stroke-width="2"/>`;
+    });
+  });
+  // legend (right)
+  ord.forEach((p, i) => {
+    const col = ROLE[p.id].fill, ly = mT + 8 + i * 22;
+    svg += `<rect x="${mL + pw + 18}" y="${ly}" width="12" height="12" rx="2" fill="${col}"/>`;
+    svg += `<text class="clab" x="${mL + pw + 36}" y="${ly + 11}" style="fill:var(--fg)">${p.name}</text>`;
+    svg += `<text class="cval" x="${mL + pw + 36}" y="${ly + 11}" dx="78" text-anchor="end" style="fill:${col}">${fmt(H.byPrecinct[p.id][years[years.length - 1]])}</text>`;
+  });
+  svg += `</svg>`;
+  $("#u-hist").innerHTML = svg;
+  $("#u-histnote").innerHTML = `<b>What this is:</b> general-election ballots cast by East Hartford voters <b>currently on the rolls</b>, by precinct, from the SOTS file — the real presidential-vs-midterm sawtooth (filled dots = presidential). <b>Caveat:</b> the file only holds today's registrants, so recent cycles are near-complete while older ones undercount voters since moved or removed. Official town turnout actually <b>fell from ~66% (2020) to ~51% (2024)</b> — a drop the file understates because departed 2020 voters aren't counted. For exact official ballots-by-precinct, drop in East Hartford's "Statement of Vote" PDF and I'll plot those numbers precisely. Sources: <b>CTData</b> 2024 turnout analysis · <b>CT SOS</b> election database.`;
+}
+
+uPyramid(); uDetail(); uHistory();
 
 /* ============ TARGET UNIVERSE (Republican chase list — real, from the file) ============ */
 const TG = window.HD10_TARGET;

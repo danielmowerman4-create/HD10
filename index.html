@@ -134,6 +134,12 @@ header::before{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;b
 .wbar{height:16px;border-radius:8px;background:#0F1A2C;overflow:hidden;position:relative;margin-top:auto}
 .wbar>i{display:block;height:100%}
 .histwrap{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.histcard{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.histcard svg{width:100%;height:auto;display:block}
+.histcard .clab{font-family:var(--body);font-size:11px;fill:var(--fg-muted)}
+.histcard .cval{font-family:var(--disp);font-weight:700;font-size:11px;fill:var(--fg)}
+.histcard .cyr{font-family:var(--disp);font-weight:700;font-size:13px;fill:var(--fg)}
+.histcard .ckind{font-family:var(--disp);font-weight:600;font-size:9.5px;letter-spacing:1px;fill:var(--fg-dim)}
 .hbar{display:grid;grid-template-columns:74px 1fr 64px;align-items:center;gap:12px;margin-bottom:10px}
 .hbar .ht{font-family:var(--disp);font-size:13px;color:var(--fg-muted)} .hbar .hv{font-family:var(--disp);font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
 .htrack{height:18px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden} .htrack>i{display:block;height:100%;border-radius:5px}
@@ -201,6 +207,7 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
       <div class="side"><div class="pdetail" id="udetail" style="flex:1"></div></div>
     </div>
     <div class="block"><div class="shead"><span class="t">Who Shows Up — Turnout Pyramid</span><span class="ln"></span></div><div class="pyramid" id="u-pyramid"></div><div class="note" id="u-pnote"></div></div>
+    <div class="block"><div class="shead"><span class="t">Historical Turnout by Precinct</span><span class="ln"></span></div><div class="histcard" id="u-hist"></div><div class="note" id="u-histnote"></div></div>
   </div>
 
   <!-- TARGET -->
@@ -245,8 +252,8 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
 </div>
 
 <script src="assets/leaflet.js"></script>
-<script src="data/hd10.js?v=9"></script>
-<script src="data/target.js?v=9"></script>
-<script src="app.js?v=9"></script>
+<script src="data/hd10.js?v=11"></script>
+<script src="data/target.js?v=11"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
