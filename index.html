@@ -3,257 +3,257 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>HD 10 Intelligence · DM Strategies</title>
+<title>HD10 Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/leaflet.css" />
 <style>
-@font-face{font-family:'Tungsten';src:url('assets/fonts/TungstenBold.ttf') format('truetype');font-weight:700;font-display:swap}
-@font-face{font-family:'Tungsten';src:url('assets/fonts/TungstenBlack.ttf') format('truetype');font-weight:800 900;font-display:swap}
+@font-face{font-family:Tungsten;src:url("assets/fonts/TungstenBold.ttf") format("truetype");font-weight:700;font-display:swap}
+@font-face{font-family:Tungsten;src:url("assets/fonts/TungstenBlack.ttf") format("truetype");font-weight:800 900;font-display:swap}
 :root{
-  --navy:#06111F; --navy-mid:#0C1D34; --navy-card:#0F2140; --navy-deep:#040C16; --navy-tile:#091522;
-  --fg:#EEF3FB; --fg-muted:#7C93AC; --fg-dim:#4A5E76;
-  --teal:#1A8B9A; --teal-lt:#22AABC; --gold:#D4A017; --gold-lt:#F0B82A;
-  --dem:#3A6AB8; --rep:#E05555; --npa:#7C3AED; --npa-lt:#A78BFA; --good:#34D399;
-  --border:rgba(255,255,255,.08); --border-lt:rgba(255,255,255,.16);
-  --disp:'Tungsten','Barlow Condensed',sans-serif; --body:'Outfit',system-ui,sans-serif; --r:10px;
+  --ink:#07111d; --ink-2:#0d1c2e; --ink-3:#13263d; --surface:#fbf7ef; --surface-2:#efe7da;
+  --paper:#fffaf2; --fg:#f7f2ea; --body-ink:#13202f; --muted:#7b8794; --dim:#536477;
+  --line:rgba(16,32,51,.12); --line-dark:rgba(255,255,255,.12);
+  --red:#c83e3f; --red-2:#e36155; --blue:#2d65a8; --teal:#147f8d; --teal-2:#22a6b8;
+  --gold:#c79124; --gold-2:#e4b44a; --violet:#7457c8; --green:#2c9b74; --orange:#d5813a;
+  --disp:Tungsten,"Barlow Condensed",sans-serif; --body:Outfit,system-ui,sans-serif; --r:8px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{font-family:var(--body);color:var(--fg);font-size:14px;-webkit-font-smoothing:antialiased;
-  background:radial-gradient(1100px 560px at 82% -10%,rgba(124,58,237,.13),transparent 60%),radial-gradient(900px 500px at 0% 0%,rgba(26,139,154,.08),transparent 55%),var(--navy);background-attachment:fixed}
-.num{font-family:var(--disp);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.4px}
-.kick{font-family:var(--disp);font-weight:600;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--fg-muted)}
-.wrap{max-width:1320px;margin:0 auto;padding:0 26px}
-
-header{height:62px;display:flex;align-items:center;gap:16px;padding:0 26px;background:linear-gradient(180deg,var(--navy-deep),var(--navy));
-  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:60;overflow:hidden}
-header::before{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(124,58,237,.6),transparent)}
-.logo svg{filter:drop-shadow(0 2px 6px rgba(210,177,110,.2))}
-.hdiv{width:1px;height:28px;background:var(--border-lt)}
-.htitle{font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:2px;text-transform:uppercase}
-.htitle b{color:var(--gold-lt)}
-.hmeta{margin-left:auto;display:flex;gap:8px;align-items:center}
-.chip{font-family:var(--disp);font-weight:600;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:5px 11px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--fg-muted)}
-.chip.live{color:var(--gold-lt);background:rgba(212,160,23,.1);border-color:rgba(212,160,23,.3)}
-
-.tabs{display:flex;gap:2px;padding:0 26px;background:rgba(7,17,30,.6);border-bottom:1px solid var(--border);position:sticky;top:62px;z-index:55;backdrop-filter:blur(8px)}
-.tab{font-family:var(--disp);font-weight:600;font-size:15px;letter-spacing:2px;text-transform:uppercase;padding:14px 18px;color:var(--fg-muted);cursor:pointer;border-bottom:3px solid transparent;transition:.15s;white-space:nowrap}
-.tab:hover{color:var(--fg)}
-.tab.on{color:var(--teal-lt);border-color:var(--gold)}
-.panel{display:none}
-.panel.on{display:block;animation:fade .3s ease}
-@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-
-.ptitle{display:flex;align-items:baseline;justify-content:space-between;margin:26px 0 12px;flex-wrap:wrap;gap:8px}
-.ptitle h1{font-family:var(--disp);font-weight:700;font-size:34px;letter-spacing:.5px;text-transform:uppercase;line-height:1}
-
-.hero{display:grid;grid-template-columns:1fr 360px;gap:16px}
-.mapcard{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);padding:8px;position:relative;box-shadow:0 18px 40px -28px #000}
-.lmap{height:60vh;min-height:430px;border-radius:7px;background:var(--navy-tile)}
-.seg{position:absolute;top:18px;left:18px;z-index:500;display:inline-flex;border:1px solid var(--border-lt);border-radius:7px;overflow:hidden;background:rgba(6,17,31,.85);backdrop-filter:blur(6px);flex-wrap:wrap}
-.seg button{font-family:var(--disp);font-weight:600;font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:8px 13px;color:var(--fg-muted);background:none;border:0;border-right:1px solid var(--border);cursor:pointer;transition:.12s}
-.seg button:last-child{border-right:0}
-.seg button:hover{color:var(--fg)} .seg button.on{background:var(--npa);color:#fff}
-.maplegend{position:absolute;bottom:18px;left:18px;z-index:500;background:rgba(6,17,31,.88);border:1px solid var(--border);border-radius:8px;padding:11px 13px;backdrop-filter:blur(6px)}
-.maplegend .kick{margin-bottom:7px}
-.maplegend .row{display:flex;align-items:center;gap:8px;font-size:11.5px;margin-bottom:4px;color:var(--fg)}
-.maplegend i{width:16px;height:10px;border-radius:2px}
-.leaflet-container{background:var(--navy-tile)!important;font-family:var(--body)!important}
-.leaflet-tooltip{background:rgba(6,17,31,.96)!important;border:1px solid var(--border-lt)!important;color:var(--fg)!important;box-shadow:0 6px 18px rgba(0,0,0,.5)!important;border-radius:8px!important;padding:8px 11px!important}
-.leaflet-tooltip::before{display:none}
-.plabel{font-family:var(--disp);font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.85);font-size:13px;text-align:center}
-.plabel-wrap{background:none!important;border:0!important;box-shadow:none!important;padding:0!important}
-
-.side{display:flex;flex-direction:column;gap:14px}
-.bigstat{background:linear-gradient(160deg,rgba(124,58,237,.16),rgba(15,33,64,.5));border:1px solid rgba(124,58,237,.34);border-radius:var(--r);padding:20px}
-.bigstat .v{font-family:var(--disp);font-weight:700;font-size:58px;line-height:.92;color:var(--npa-lt)}
-.bigstat .l{font-family:var(--disp);font-weight:600;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--fg);margin-top:6px}
-.bigstat .s{font-size:12.5px;color:var(--fg-muted);margin-top:5px;line-height:1.45}
-.pdetail{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);padding:18px;flex:1}
-.pdetail .top{display:flex;align-items:baseline;justify-content:space-between}
-.pn{font-family:var(--disp);font-weight:700;font-size:24px;letter-spacing:.5px}
-.role{font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:4px 9px;border-radius:5px}
-.bars{margin-top:14px;display:flex;flex-direction:column;gap:9px}
-.bar .bt{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px} .bar .bt b{font-family:var(--disp);font-size:13px}
-.track{height:8px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden} .track>i{display:block;height:100%;border-radius:4px}
-.dstat{display:flex;justify-content:space-between;margin-top:10px;font-size:12px} .dstat span{color:var(--fg-muted)} .dstat b{font-family:var(--disp);font-size:13px}
-
-.block{padding:30px 0 0}
-.shead{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.shead .t{font-family:var(--disp);font-weight:700;font-size:14px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold-lt)}
-.shead .ln{flex:1;height:1px;background:var(--border)}
-
-.tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-.tcard{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;position:relative;overflow:hidden}
-.tcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px}
-.tcard.rep::before{background:var(--rep)} .tcard.npa::before{background:var(--npa)} .tcard.teal::before{background:var(--teal-lt)} .tcard.gold::before{background:var(--gold)}
-.tcard .v{font-family:var(--disp);font-weight:700;font-size:42px;line-height:.95}
-.tcard.rep .v{color:var(--rep)} .tcard.npa .v{color:var(--npa-lt)} .tcard.teal .v{color:var(--teal-lt)} .tcard.gold .v{color:var(--gold-lt)}
-.tcard .l{font-family:var(--disp);font-weight:600;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--fg);margin-top:6px}
-.tcard .s{font-size:11.5px;color:var(--fg-muted);margin-top:4px}
-
-.plays{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-.play{display:flex;gap:16px;background:linear-gradient(160deg,rgba(15,33,64,.55),rgba(10,24,40,.4));border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
-.play .n{font-family:var(--disp);font-weight:700;font-size:34px;line-height:1;color:var(--gold);flex-shrink:0;width:34px}
-.play h3{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
-.play p{font-size:13px;color:var(--fg-muted);line-height:1.5} .play p b{color:var(--fg);font-weight:600}
-
-.pcards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.pc{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;cursor:pointer;transition:.15s;border-top:3px solid var(--fg-dim)}
-.pc:hover{transform:translateY(-3px);border-color:var(--border-lt)}
-.pch{display:flex;align-items:center;justify-content:space-between} .pcn{font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:.5px}
-.pcv{font-family:var(--disp);font-weight:700;font-size:34px;margin-top:10px} .pcl{font-size:11.5px;color:var(--fg-muted);margin-top:2px}
-.mini{display:flex;height:7px;border-radius:4px;overflow:hidden;margin-top:14px}
-
-/* issues */
-.ichips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-.ichip{font-family:var(--disp);font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:9px 15px;border-radius:8px;color:var(--fg-muted);background:var(--navy-card);border:1px solid var(--border);cursor:pointer;transition:.12s}
-.ichip:hover{color:var(--fg);border-color:var(--border-lt)}
-.ichip.on{color:#06111F;background:var(--gold-lt);border-color:var(--gold-lt)}
-.matrix{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.mrow{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;align-items:stretch;border-bottom:1px solid var(--border)}
-.mrow:last-child{border-bottom:0}
-.mrow.head .mc{font-family:var(--disp);font-weight:600;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--fg-muted);background:rgba(0,0,0,.2)}
-.mc{padding:13px 15px;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center}
-.mc:last-child{border-right:0}
-.mc .iname{font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:.4px}
-.mc .iaud{font-size:11px;color:var(--fg-muted);margin-top:2px}
-.mc.cell{position:relative}
-.mc.cell .cv{font-family:var(--disp);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums;position:relative;z-index:1}
-.mc.cell .cs{font-size:10.5px;color:var(--fg-muted);position:relative;z-index:1}
-.mc.cell .fillbg{position:absolute;left:0;top:0;bottom:0;background:rgba(124,58,237,.22)}
-.mc.cell.best .cv{color:var(--gold-lt)}
-.istat{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
-
-/* universe */
-.winhero{background:linear-gradient(160deg,rgba(212,160,23,.16),rgba(15,33,64,.55));border:1px solid rgba(212,160,23,.34);border-radius:var(--r);padding:22px;display:flex;flex-direction:column}
-.winhero .v{font-family:var(--disp);font-weight:700;font-size:66px;line-height:.9;color:var(--gold-lt)}
-.winhero .l{font-family:var(--disp);font-weight:600;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px}
-.wbar{height:16px;border-radius:8px;background:#0F1A2C;overflow:hidden;position:relative;margin-top:auto}
-.wbar>i{display:block;height:100%}
-.histwrap{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
-.histcard{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
-.histcard svg{width:100%;height:auto;display:block}
-.histcard .clab{font-family:var(--body);font-size:11px;fill:var(--fg-muted)}
-.histcard .cval{font-family:var(--disp);font-weight:700;font-size:11px;fill:var(--fg)}
-.histcard .cyr{font-family:var(--disp);font-weight:700;font-size:13px;fill:var(--fg)}
-.histcard .ckind{font-family:var(--disp);font-weight:600;font-size:9.5px;letter-spacing:1px;fill:var(--fg-dim)}
-.hbar{display:grid;grid-template-columns:74px 1fr 64px;align-items:center;gap:12px;margin-bottom:10px}
-.hbar .ht{font-family:var(--disp);font-size:13px;color:var(--fg-muted)} .hbar .hv{font-family:var(--disp);font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
-.htrack{height:18px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden} .htrack>i{display:block;height:100%;border-radius:5px}
-.pyramid{display:flex;flex-direction:column;gap:11px}
-.prow2{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:14px}
-.prow2 .plab{display:flex;flex-direction:column} .prow2 .plab .pt{font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:.4px} .prow2 .plab .ps{font-size:11px;color:var(--fg-muted)}
-.pbar2{height:30px;display:flex;border-radius:6px;overflow:hidden;background:#0F1A2C}
-.pbar2 i{display:flex;align-items:center;justify-content:center;height:100%;font-family:var(--disp);font-weight:700;font-size:12px;color:#fff;min-width:0;overflow:hidden}
-footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} footer b{color:var(--fg-muted)}
-.note{background:rgba(34,170,188,.07);border:1px solid rgba(34,170,188,.22);border-radius:8px;padding:11px 14px;font-size:12px;color:var(--fg-muted);margin-top:16px;line-height:1.5}
-.note b{color:var(--fg)}
-
-@media(max-width:980px){.hero{grid-template-columns:1fr}.tgrid{grid-template-columns:repeat(2,1fr)}.plays{grid-template-columns:1fr}.pcards{grid-template-columns:1fr}.istat{grid-template-columns:1fr}.lmap{height:46vh}}
+html,body{min-height:100%}
+body{font-family:var(--body);font-size:14px;color:var(--body-ink);background:var(--surface);-webkit-font-smoothing:antialiased}
+button{font:inherit}
+.num{font-family:var(--disp);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.2px}
+.kick{font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim)}
+.wrap{max-width:1360px;margin:0 auto;padding:0 28px}
+.appbar{position:sticky;top:0;z-index:80;background:rgba(7,17,29,.96);color:var(--fg);border-bottom:1px solid var(--line-dark);backdrop-filter:blur(12px)}
+.topline{height:66px;display:flex;align-items:center;gap:18px;padding:0 28px}
+.mark{width:38px;height:38px;display:grid;place-items:center;border:1px solid rgba(228,180,74,.44);background:rgba(228,180,74,.08);border-radius:6px;font-family:var(--disp);font-size:18px;letter-spacing:1px;color:var(--gold-2)}
+.brand h1{font-family:var(--disp);font-size:24px;line-height:1;letter-spacing:1.2px;text-transform:uppercase}
+.brand p{font-size:12px;color:#aeb9c6;margin-top:4px}
+.topmeta{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.chip{font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:1.3px;text-transform:uppercase;padding:6px 10px;border-radius:6px;background:rgba(255,255,255,.06);border:1px solid var(--line-dark);color:#d8e1ea}
+.chip.source{color:var(--gold-2);border-color:rgba(228,180,74,.38);background:rgba(228,180,74,.08)}
+.method-btn{cursor:pointer;color:#f4ead6;background:rgba(255,255,255,.07)}
+.tabs{display:flex;gap:1px;overflow-x:auto;padding:0 28px;background:rgba(9,23,39,.72)}
+.tab{appearance:none;border:0;border-bottom:3px solid transparent;background:transparent;color:#aeb9c6;cursor:pointer;font-family:var(--disp);font-weight:700;font-size:14px;letter-spacing:1.8px;text-transform:uppercase;padding:14px 16px;white-space:nowrap;transition:.15s}
+.tab:hover{color:#fff;background:rgba(255,255,255,.04)}
+.tab.on{color:#fff;border-color:var(--gold-2);background:rgba(255,255,255,.06)}
+.panel{display:none;padding:28px 0 42px}.panel.on{display:block;animation:fade .22s ease}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.page-title{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}
+.page-title h2{font-family:var(--disp);font-size:39px;line-height:.95;letter-spacing:.4px;text-transform:uppercase;color:var(--ink)}
+.page-title p{max-width:560px;color:var(--dim);font-size:13px;line-height:1.5;text-align:right}
+.section{margin-top:28px}.section-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}.section-head b{font-family:var(--disp);font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--ink)}.section-head i{flex:1;height:1px;background:var(--line)}
+.hero-summary{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:18px;align-items:stretch}
+.briefing{background:var(--ink);color:var(--fg);border-radius:var(--r);padding:28px;border:1px solid rgba(255,255,255,.12);min-height:320px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.briefing:before{content:"";position:absolute;inset:0;border-top:4px solid var(--red);pointer-events:none}
+.briefing h3{font-family:var(--disp);font-size:58px;line-height:.9;letter-spacing:.2px;text-transform:uppercase;max-width:860px}
+.briefing .sub{font-size:15px;color:#c8d2dd;line-height:1.55;max-width:780px;margin-top:14px}
+.winning-path{margin-top:24px;padding-top:20px;border-top:1px solid var(--line-dark)}
+.winning-path .label{font-family:var(--disp);font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--gold-2);margin-bottom:7px}
+.winning-path p{font-size:18px;line-height:1.45;max-width:820px}
+.update-box{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:16px}
+.update-box .big{font-family:var(--disp);font-size:64px;line-height:.85;color:var(--red)}
+.update-box h4{font-family:var(--disp);font-size:22px;letter-spacing:.4px;text-transform:uppercase}
+.update-box p{color:var(--dim);line-height:1.55}
+.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.stat-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;position:relative;overflow:hidden}
+.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--line))}
+.card .value{font-family:var(--disp);font-weight:700;font-size:46px;line-height:.9;color:var(--accent,var(--ink))}
+.card .label{font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:1.4px;text-transform:uppercase;margin-top:8px;color:var(--ink)}
+.card .small{font-size:12px;color:var(--dim);line-height:1.45;margin-top:5px}
+.map-grid{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:16px}
+.mapcard{background:var(--ink);border:1px solid rgba(255,255,255,.12);border-radius:var(--r);padding:8px;position:relative;box-shadow:0 18px 40px rgba(13,28,46,.12)}
+.lmap{height:63vh;min-height:470px;border-radius:6px;background:#101b29}
+.preview-map{height:330px;min-height:330px}
+.map-controls{position:absolute;top:18px;left:18px;z-index:500;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 36px)}
+.seg-btn{border:1px solid rgba(255,255,255,.18);background:rgba(7,17,29,.86);color:#c9d4de;cursor:pointer;border-radius:6px;padding:8px 11px;font-family:var(--disp);font-weight:700;font-size:12px;letter-spacing:1.1px;text-transform:uppercase;backdrop-filter:blur(8px)}
+.seg-btn:hover,.seg-btn.on{color:#fff;background:rgba(199,145,36,.92);border-color:rgba(228,180,74,.8)}
+.maplegend{position:absolute;bottom:18px;left:18px;z-index:500;background:rgba(7,17,29,.9);border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:11px 13px;color:#e8edf2;backdrop-filter:blur(8px)}
+.maplegend .row{display:flex;align-items:center;gap:8px;font-size:11.5px;margin-top:5px}.maplegend i{width:16px;height:10px;border-radius:2px}
+.leaflet-container{font-family:var(--body)!important;background:#101b29!important}.leaflet-tooltip{background:rgba(7,17,29,.94)!important;border:1px solid rgba(255,255,255,.2)!important;color:#fff!important;border-radius:7px!important;box-shadow:0 8px 22px rgba(0,0,0,.35)!important}.leaflet-tooltip:before{display:none}
+.plabel{font-family:var(--disp);font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:#fff;text-shadow:0 1px 5px rgba(0,0,0,.85);font-size:13px;text-align:center}.plabel-wrap{background:none!important;border:0!important;box-shadow:none!important}
+.side{display:flex;flex-direction:column;gap:14px}.detail{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:20px}.detail.dark{background:var(--ink);color:var(--fg);border-color:var(--line-dark)}
+.detail-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.detail h3{font-family:var(--disp);font-size:28px;line-height:1;text-transform:uppercase;letter-spacing:.3px}.tag{display:inline-flex;align-items:center;border-radius:6px;padding:5px 9px;font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;border:1px solid currentColor;color:var(--accent,var(--gold))}
+.metric-list{display:flex;flex-direction:column;gap:10px;margin-top:16px}.metric{display:flex;justify-content:space-between;gap:14px;padding-bottom:9px;border-bottom:1px solid var(--line);font-size:12.5px}.metric:last-child{border-bottom:0}.metric span{color:var(--dim)}.metric b{font-family:var(--disp);font-size:15px;color:var(--body-ink);font-weight:700}.dark .metric{border-color:var(--line-dark)}.dark .metric span{color:#aeb9c6}.dark .metric b{color:#fff}
+.bar{margin-top:12px}.bar-top{display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px}.bar-top b{font-family:var(--disp);font-size:14px}.track{height:9px;background:rgba(16,32,51,.08);border-radius:5px;overflow:hidden}.track i{display:block;height:100%;border-radius:5px;background:var(--accent)}
+.rank-table{width:100%;border-collapse:collapse;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:table}
+.rank-table th,.rank-table td{padding:13px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.rank-table th{font-family:var(--disp);font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim);background:#f4ecdf}.rank-table tr:last-child td{border-bottom:0}.rank-table button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:6px;padding:6px 8px;cursor:pointer;font-family:var(--disp);font-weight:700;letter-spacing:.9px;text-transform:uppercase;font-size:11px}
+.action-list{display:grid;gap:12px}.action{display:grid;grid-template-columns:42px 1fr;gap:12px;padding:15px;border:1px solid var(--line);border-radius:var(--r);background:var(--paper)}.action .n{font-family:var(--disp);font-size:31px;color:var(--accent,var(--gold));line-height:.9}.action h4{font-family:var(--disp);font-size:20px;text-transform:uppercase;letter-spacing:.3px}.action p{color:var(--dim);font-size:13px;line-height:1.5;margin-top:3px}
+.funnel{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch}.funnel-step{background:var(--ink);color:var(--fg);border-radius:var(--r);padding:18px;border-top:4px solid var(--accent)}.funnel-step .value{font-family:var(--disp);font-size:42px;line-height:.9;color:var(--gold-2)}.funnel-step .label{font-family:var(--disp);font-size:15px;text-transform:uppercase;letter-spacing:.9px;margin-top:8px}.funnel-step p{font-size:12px;color:#b9c4cf;line-height:1.45;margin-top:5px}
+.segment-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.segment-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:18px;border-top:4px solid var(--accent)}.segment-card h4{font-family:var(--disp);font-size:22px;line-height:1;text-transform:uppercase;letter-spacing:.3px}.segment-card .value{font-family:var(--disp);font-size:42px;color:var(--accent);margin-top:12px}.segment-card p{font-size:12.5px;color:var(--dim);line-height:1.45;margin-top:8px}
+.takeaway{margin-top:12px;background:#f1e8d9;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;color:var(--dim);font-size:12.5px;line-height:1.5}.takeaway b{color:var(--ink)}
+.matrix{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}.mrow{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr 1fr;border-bottom:1px solid var(--line)}.mrow:last-child{border-bottom:0}.mcell{padding:14px;border-right:1px solid var(--line);min-height:82px;display:flex;flex-direction:column;justify-content:center}.mcell:last-child{border-right:0}.mrow.head .mcell{min-height:auto;background:#f4ecdf;font-family:var(--disp);font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim)}.mcell h4{font-family:var(--disp);font-size:20px;text-transform:uppercase;letter-spacing:.3px}.mcell p{font-size:12px;color:var(--dim);line-height:1.4;margin-top:4px}
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.flow-card{background:var(--ink);color:var(--fg);border-radius:var(--r);padding:18px;border-top:4px solid var(--accent);min-height:145px}.flow-card .value{font-family:var(--disp);font-size:40px;line-height:.9;color:var(--accent)}.flow-card h4{font-family:var(--disp);font-size:18px;text-transform:uppercase;letter-spacing:.4px;margin-top:9px}.flow-card p{font-size:12px;color:#bac4ce;line-height:1.45;margin-top:5px}
+.empty{min-height:220px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;border:1px dashed var(--line);border-radius:var(--r);padding:24px;background:rgba(255,250,242,.62)}.empty .symbol{width:34px;height:34px;border-radius:6px;background:rgba(199,145,36,.14);border:1px solid rgba(199,145,36,.28);margin-bottom:12px}.empty h3{font-family:var(--disp);font-size:24px;text-transform:uppercase}.empty p{color:var(--dim);line-height:1.5;margin-top:4px}
+.drawer{position:fixed;inset:0;z-index:100;display:none}.drawer.on{display:block}.drawer-bg{position:absolute;inset:0;background:rgba(7,17,29,.55)}.drawer-panel{position:absolute;right:0;top:0;bottom:0;width:min(520px,92vw);background:var(--paper);padding:26px;border-left:1px solid var(--line);box-shadow:-24px 0 70px rgba(0,0,0,.22);overflow:auto}.drawer-panel h2{font-family:var(--disp);font-size:36px;text-transform:uppercase}.drawer-panel p,.drawer-panel li{color:var(--dim);line-height:1.55}.drawer-panel ul{margin:16px 0 0 18px}.close{position:absolute;top:18px;right:18px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:7px 10px;cursor:pointer}
+footer{padding:28px;color:var(--dim);font-size:11.5px;line-height:1.6;border-top:1px solid var(--line);background:#f1e9dc}
+@media(max-width:1080px){.hero-summary,.map-grid{grid-template-columns:1fr}.stat-grid,.stat-grid.four,.segment-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.flow,.funnel{grid-template-columns:repeat(2,minmax(0,1fr))}.page-title{align-items:flex-start;flex-direction:column}.page-title p{text-align:left}.lmap{height:52vh}}
+@media(max-width:680px){.wrap{padding:0 16px}.topline{height:auto;min-height:66px;padding:12px 16px;align-items:flex-start}.topmeta{width:100%;margin-left:0;justify-content:flex-start}.tabs{padding:0 16px}.briefing h3{font-size:42px}.stat-grid,.stat-grid.four,.segment-grid,.flow,.funnel{grid-template-columns:1fr}.mrow{grid-template-columns:1fr}.mcell{border-right:0;border-bottom:1px solid var(--line)}.rank-table{display:block;overflow-x:auto}.preview-map{height:270px;min-height:270px}.lmap{min-height:360px}.map-controls{position:static;margin-bottom:8px}.maplegend{right:18px}.panel{padding-top:20px}}
 </style>
 </head>
 <body>
-<header>
-  <div class="logo">
-    <svg height="38" viewBox="28 22 610 132" xmlns="http://www.w3.org/2000/svg" aria-label="DM Strategies">
-      <g transform="translate(100 125)"><g stroke="#D2B16E" stroke-width="2.2" stroke-linecap="round" fill="none">
-        <line x1="0" y1="-50" x2="-66" y2="-76"/><line x1="0" y1="-50" x2="-36" y2="-94"/><line x1="0" y1="-50" x2="0" y2="-106"/><line x1="0" y1="-50" x2="36" y2="-94"/><line x1="0" y1="-50" x2="66" y2="-76"/></g>
-        <path d="M -5 -58 L 5 -58 L 0 -65 Z" fill="#F4F1E8"/><rect x="-8" y="-58" width="16" height="10" fill="#F4F1E8"/><rect x="-13" y="-48" width="26" height="3" fill="#F4F1E8"/><polygon points="-10,-45 10,-45 19,48 -19,48" fill="#F4F1E8"/><rect x="-16" y="6" width="32" height="3.5" fill="#0F2F2A"/></g>
-      <text x="180" y="140" font-family="Georgia,serif" font-size="52" letter-spacing="-1" fill="#F4F1E8">DM Strategies</text>
-    </svg>
+<div class="appbar">
+  <div class="topline">
+    <div class="mark">HD</div>
+    <div class="brand">
+      <h1>HD10 Intelligence</h1>
+      <p>The data layer between the voter file and the campaign plan.</p>
+    </div>
+    <div class="topmeta">
+      <span class="chip" id="h-district">Connecticut House District 10</span>
+      <span class="chip" id="h-candidate">Candidate</span>
+      <span class="chip source" id="h-source">SOTS voter file</span>
+      <button class="chip method-btn" id="method-open" type="button">Methodology</button>
+    </div>
   </div>
-  <div class="hdiv"></div>
-  <div class="htitle">HD 10 · <b id="h-cand">—</b></div>
-  <div class="hmeta">
-    <span class="chip" id="h-town">East Hartford</span>
-    <span class="chip live">● SOTS Voter File</span>
+  <div class="tabs" role="tablist" aria-label="HD10 Intelligence sections">
+    <button class="tab on" data-tab="overview" type="button">Overview</button>
+    <button class="tab" data-tab="precincts" type="button">Priority Precincts</button>
+    <button class="tab" data-tab="voters" type="button">Priority Voters</button>
+    <button class="tab" data-tab="messages" type="button">Message Map</button>
+    <button class="tab" data-tab="path" type="button">Path to Victory</button>
   </div>
-</header>
-
-<div class="tabs">
-  <div class="tab on" data-tab="map">Battle Map</div>
-  <div class="tab" data-tab="universe">Universe</div>
-  <div class="tab" data-tab="target">Target</div>
-  <div class="tab" data-tab="issues">Profiles</div>
-  <div class="tab" data-tab="play">Strategy</div>
 </div>
 
-<div class="wrap">
-
-  <!-- BATTLE MAP -->
-  <div class="panel on" id="tab-map">
-    <div class="ptitle"><h1>The Battle Map</h1><span class="kick">3 precincts · click to focus</span></div>
-    <div class="hero">
-      <div class="mapcard"><div class="seg" id="seg"></div><div class="lmap" id="map"></div><div class="maplegend" id="legend"></div></div>
-      <div class="side">
-        <div class="bigstat"><div class="v" id="bs-v">—</div><div class="l">Unaffiliated voters</div><div class="s" id="bs-s">—</div></div>
-        <div class="pdetail" id="pdetail"></div>
-      </div>
-    </div>
-    <div class="block"><div class="shead"><span class="t">The Numbers That Matter</span><span class="ln"></span></div><div class="tgrid" id="takeaways"></div></div>
-    <div class="block"><div class="shead"><span class="t">Precinct by Precinct</span><span class="ln"></span></div><div class="pcards" id="pcards"></div></div>
-  </div>
-
-  <!-- UNIVERSE -->
-  <div class="panel" id="tab-universe">
-    <div class="ptitle"><h1>The Universe</h1><span class="kick">who actually votes · click a precinct</span></div>
-    <div id="u-cross"></div>
-    <div class="tgrid" id="u-stats" style="margin-bottom:8px"></div>
-    <div class="hero">
-      <div class="mapcard"><div class="seg" id="useg"></div><div class="lmap" id="umap"></div><div class="maplegend" id="ulegend"></div></div>
-      <div class="side"><div class="pdetail" id="udetail" style="flex:1"></div></div>
-    </div>
-    <div class="block"><div class="shead"><span class="t">Who Shows Up — Turnout Pyramid</span><span class="ln"></span></div><div class="pyramid" id="u-pyramid"></div><div class="note" id="u-pnote"></div></div>
-    <div class="block"><div class="shead"><span class="t">Historical Turnout by Precinct</span><span class="ln"></span></div><div class="histcard" id="u-hist"></div><div class="note" id="u-histnote"></div></div>
-  </div>
-
-  <!-- TARGET -->
-  <div class="panel" id="tab-target">
-    <div class="ptitle"><h1>The Target Universe</h1><span class="kick">who to chase · likely voters · GOTV</span></div>
-    <div class="tgrid" id="t-stats" style="margin-bottom:8px"></div>
-    <div class="block"><div class="shead"><span class="t">The Build — Six Segments</span><span class="ln"></span></div><div class="histwrap" id="t-segs"></div><div class="note" id="t-segnote"></div></div>
-    <div class="block"><div class="shead"><span class="t">Likely Voters vs. Needs a Push</span><span class="ln"></span></div><div class="pcards" id="t-split"></div></div>
-    <div class="block"><div class="shead"><span class="t">Composition</span><span class="ln"></span></div><div class="hero" id="t-comp"></div></div>
-    <div class="block"><div class="shead"><span class="t">2026 Playbook</span><span class="ln"></span></div><div class="plays" id="t-plays"></div></div>
-  </div>
-
-  <!-- PROFILES -->
-  <div class="panel" id="tab-issues">
-    <div class="ptitle"><h1>How the Precincts Differ</h1><span class="kick">real signals from the file · precinct-by-precinct targeting</span></div>
-    <div class="pcards" id="dna"></div>
-    <div class="block"><div class="shead"><span class="t">Map a Signal</span><span class="ln"></span></div>
-      <div class="ichips" id="ichips"></div>
-      <div class="hero">
-        <div class="mapcard"><div class="lmap" id="imap"></div><div class="maplegend" id="ilegend"></div></div>
-        <div class="side">
-          <div class="bigstat" style="background:linear-gradient(160deg,rgba(212,160,23,.16),rgba(15,33,64,.5));border-color:rgba(212,160,23,.34)">
-            <div class="v" id="is-v" style="color:var(--gold-lt)">—</div><div class="l" id="is-l">—</div><div class="s" id="is-s">—</div></div>
-          <div class="pdetail" id="idetail" style="flex:1"></div>
+<main class="wrap">
+  <section class="panel on" id="tab-overview">
+    <div class="hero-summary">
+      <div class="briefing">
+        <div>
+          <div class="kick" style="color:var(--gold-2)">Connecticut House District 10</div>
+          <h3>Turnout, persuasion, and precinct focus in East Hartford.</h3>
+          <p class="sub">HD10 is a Democratic-registration district where the Republican route depends on holding the base, expanding among unaffiliated voters, and concentrating field work where turnout or persuasion can actually move votes.</p>
+        </div>
+        <div class="winning-path">
+          <div class="label">Winning Path</div>
+          <p id="overview-winning-path">Loading campaign path.</p>
         </div>
       </div>
+      <aside class="update-box">
+        <div>
+          <div class="kick">Last updated</div>
+          <div class="big" id="last-updated">2026</div>
+          <h4 id="race-label">HD10 campaign model</h4>
+          <p id="overview-note">Updated through the local voter-file build. Open methodology for source and model notes.</p>
+        </div>
+        <button class="seg-btn" id="method-open-2" type="button" style="position:static;background:var(--ink);border-color:var(--ink);color:#fff;width:max-content">View methodology</button>
+      </aside>
     </div>
-    <div class="block"><div class="shead"><span class="t">Side by Side — Every Signal vs District</span><span class="ln"></span></div>
-      <div class="matrix" id="pmatrix"></div>
-      <div class="note" id="inote"></div>
+
+    <div class="section">
+      <div class="stat-grid" id="overview-cards"></div>
     </div>
-  </div>
 
-  <!-- STRATEGY -->
-  <div class="panel" id="tab-play">
-    <div class="ptitle"><h1>How He Wins</h1><span class="kick">a republican path in a blue town</span></div>
-    <div class="tgrid" id="winstat" style="margin-bottom:8px"></div>
-    <div class="block"><div class="shead"><span class="t">The Play</span><span class="ln"></span></div><div class="plays" id="plays"></div></div>
-  </div>
+    <div class="section map-grid">
+      <div>
+        <div class="section-head"><b>District Map Preview</b><i></i></div>
+        <div class="mapcard"><div class="lmap preview-map" id="overview-map"></div><div class="maplegend" id="overview-legend"></div></div>
+      </div>
+      <div class="side">
+        <div class="detail" id="overview-priorities"></div>
+        <div class="detail" id="overview-now"></div>
+      </div>
+    </div>
+  </section>
 
-  <footer id="foot"></footer>
+  <section class="panel" id="tab-precincts">
+    <div class="page-title">
+      <h2>Priority Precincts</h2>
+      <p>This is the working map for focus decisions. Select a precinct to see who matters there, what message is strongest, and what the campaign should do next.</p>
+    </div>
+    <div class="map-grid">
+      <div class="mapcard">
+        <div class="map-controls" id="precinct-controls"></div>
+        <div class="lmap" id="precinct-map"></div>
+        <div class="maplegend" id="precinct-legend"></div>
+      </div>
+      <aside class="side">
+        <div class="detail dark" id="precinct-detail"></div>
+        <div class="detail" id="precinct-export"></div>
+      </aside>
+    </div>
+    <div class="section">
+      <div class="section-head"><b>Precinct Ranking</b><i></i></div>
+      <table class="rank-table" id="precinct-ranking"></table>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-voters">
+    <div class="page-title">
+      <h2>Priority Voters</h2>
+      <p>The turnout landscape shows who participates. Priority voters are the people the campaign should contact.</p>
+    </div>
+    <div class="funnel" id="voter-funnel"></div>
+    <div class="section">
+      <div class="section-head"><b>Six Voter Priorities</b><i></i></div>
+      <div class="segment-grid" id="segment-cards"></div>
+      <div class="takeaway" id="segment-takeaway"></div>
+    </div>
+    <div class="section stat-grid" id="reliable-vs-opportunity"></div>
+    <div class="section map-grid">
+      <div class="detail" id="target-mix"></div>
+      <div class="detail" id="turnout-ladder"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-messages">
+    <div class="page-title">
+      <h2>Message Map</h2>
+      <p>Message recommendations are inferred from voter-file signals, precinct composition, and turnout behavior. They should guide testing, not substitute for polling.</p>
+    </div>
+    <div class="section">
+      <div class="section-head"><b>Persuasion Environment</b><i></i></div>
+      <div class="segment-grid" id="message-cards"></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><b>Issue -> Audience -> Best Precincts -> Campaign Use</b><i></i></div>
+      <div class="matrix" id="message-matrix"></div>
+      <div class="takeaway" id="message-takeaway"></div>
+    </div>
+    <div class="section map-grid">
+      <div class="mapcard">
+        <div class="map-controls" id="signal-controls"></div>
+        <div class="lmap" id="signal-map"></div>
+        <div class="maplegend" id="signal-legend"></div>
+      </div>
+      <aside class="detail" id="signal-detail"></aside>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-path">
+    <div class="page-title">
+      <h2>Path to Victory</h2>
+      <p>This is the clearest available modeled path to a Republican victory based on the current voter-file model. It describes a required coalition, not a promised outcome.</p>
+    </div>
+    <div class="flow" id="winning-coalition"></div>
+    <div class="section map-grid">
+      <div class="detail" id="path-baseline"></div>
+      <div class="detail" id="path-precincts"></div>
+    </div>
+    <div class="section">
+      <div class="section-head"><b>Recommended Action Plan</b><i></i></div>
+      <div class="action-list" id="action-plan"></div>
+    </div>
+  </section>
+</main>
+
+<div class="drawer" id="method-drawer" aria-hidden="true">
+  <div class="drawer-bg" data-close-method></div>
+  <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="method-title">
+    <button class="close" type="button" data-close-method>Close</button>
+    <h2 id="method-title">Methodology</h2>
+    <div id="method-content"></div>
+  </div>
 </div>
 
+<footer id="foot"></footer>
+
 <script src="assets/leaflet.js"></script>
-<script src="data/hd10.js?v=11"></script>
-<script src="data/target.js?v=11"></script>
-<script src="app.js?v=11"></script>
+<script src="data/hd10.js?v=12"></script>
+<script src="data/target.js?v=12"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
