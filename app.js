@@ -49,11 +49,11 @@ function areaRole(p) {
     action: "Use candidate persuasion, affordability, and local trust messaging.",
   };
   return {
-    label: "Low priority",
-    color: color.low,
-    why: `${p.name} matters, but it should not pull resources away from the higher-return field work.`,
-    targets: Math.min(p.low_prop, p.persuade),
-    action: "Maintain light coverage and focus extra time elsewhere.",
+    label: "Republican base",
+    color: color.base,
+    why: `${p.name} has the strongest Republican share at ${p.pct.R}% — the best base to confirm and bank.`,
+    targets: p.party.R,
+    action: "Confirm Republican supporters and bank their votes early here.",
   };
 }
 
@@ -104,7 +104,7 @@ let selectedArea = turnoutArea.id;
 function renderAssessment() {
   $("#district-chip").textContent = D.meta.district ? `Connecticut ${D.meta.district}` : "Connecticut House District 10";
   $("#source-chip").textContent = "SOTS voter file";
-  $("#assessment").innerHTML = `HD-10 is Democratic leaning, but Republicans have a viable path by maximizing turnout in <b>${turnoutArea.name}</b>, holding losses in <b>${baseArea.name}</b>, and persuading reachable unaffiliated voters in <b>${persuasionArea.name}</b>.`;
+  $("#assessment").innerHTML = `HD-10 is Democratic leaning, but Republicans have a viable path by maximizing turnout in <b>${turnoutArea.name}</b>, banking the Republican base in <b>${baseArea.name}</b>, and persuading reachable unaffiliated voters in <b>${persuasionArea.name}</b>.`;
 
   $("#overview-metrics").innerHTML = [
     metric(color.base, fmt(T.party.R), "Republican base voters", `${T.pct.R}% of active voters`),
@@ -121,7 +121,7 @@ function renderFocusMap() {
   $("#focus-legend").innerHTML = `<div class="kick" style="color:#dce5ed">Priority Areas</div>
     <div class="row"><i style="background:${color.turnout}"></i>Turnout priority</div>
     <div class="row"><i style="background:${color.persuasion}"></i>Persuasion priority</div>
-    <div class="row"><i style="background:${color.low}"></i>Low priority</div>`;
+    <div class="row"><i style="background:${color.base}"></i>Republican base</div>`;
 }
 
 function paintFocusMap() {
@@ -170,7 +170,7 @@ function renderWhatMatters() {
   const conclusions = [
     [`Turn out ${turnoutArea.name}`, `${turnoutArea.name} has ${fmt(turnoutArea.low_prop)} lower-turnout voters. This is where repeated contact can create margin.`],
     [`Persuade ${persuasionArea.name}`, `${persuasionArea.name} has the highest unaffiliated share at ${persuasionArea.pct.U}%. Use candidate and affordability messaging.`],
-    [`Limit low-return work`, `${lowerPriorityArea.name} should receive coverage, but not at the expense of turnout and persuasion priorities.`],
+    [`Bank the base in ${baseArea.name}`, `${baseArea.name} has the strongest Republican share at ${baseArea.pct.R}%. Confirm supporters and bank their votes early.`],
   ];
   $("#what-matters").innerHTML = conclusions.map(([title, text]) => `<div class="conclusion"><b>${title}</b><p>${text}</p></div>`).join("");
 }
