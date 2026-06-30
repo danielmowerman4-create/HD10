@@ -59,40 +59,44 @@ const WIN = D.win.win_number;                          // 3,414 to win
 const COVERAGE = WIN ? Math.round(100 * OUR_UNIVERSE / WIN) : 0;
 const tgPrec = id => (TG && TG.precinct && TG.precinct[id]) || null;
 
-/* ── Sourced election history (public results; precinct splits pending) ──
-   Levels: "district" = HD-10 seat; "town" = East Hartford town-wide.
-   Precinct-level (004/005/006) splits aren't in the public PDFs — when those
-   are supplied they drop straight into a `byPrecinct` field per year. */
+/* ── Election history — REAL precinct-level returns (HD-10 voting districts
+   004 Silver Lane / 005 Hockanum / 006 Goodwin), pulled from the CT SOS
+   election database polling-place results (electionhistory.ct.gov).
+   bp = { precinct: [Democratic votes, Republican votes] }. Years without bp
+   are pending (contest not yet pulled). */
 const HRES = {
   order: ["statehouse", "president", "governor", "mayor"],
   meta: {
-    statehouse: { label: "State House", level: "HD-10 district", source: "CT SOS · Ballotpedia" },
-    president:  { label: "President",   level: "East Hartford town", source: "Wikipedia (East Hartford, CT)" },
-    governor:   { label: "Governor",    level: "East Hartford town", source: "CT SOS" },
-    mayor:      { label: "Mayor",       level: "East Hartford town", source: "CT SOS · FOX61" },
+    statehouse: { label: "State House", sub: "HD-10 seat (the race)" },
+    president:  { label: "President",   sub: "HD-10 precincts" },
+    governor:   { label: "Governor",    sub: "HD-10 precincts" },
+    mayor:      { label: "Mayor",       sub: "HD-10 precincts (town-wide race)" },
   },
-  statehouse: {
-    2024: { d: { n: "Genga", p: 68.8 }, r: { n: "Tierinni", p: 31.2 } },
-    2022: { d: { n: "Genga", p: 100 }, r: null, note: "Unopposed" },
-    2020: { d: { n: "Genga" }, r: null, note: "Re-elected — exact margin pending" },
-    2018: { d: { n: "Genga" }, r: null, note: "Re-elected — exact margin pending" },
-    2016: { d: { n: "Genga" }, r: { n: "Simpson" }, note: "D won — exact margin pending" },
-  },
-  president: {
-    2024: { d: { n: "Harris", p: 68.4, v: 12504 }, r: { n: "Trump", p: 30.4, v: 5550 }, o: 1.2 },
-    2020: { d: { n: "Biden", p: 71.8, v: 14787 }, r: { n: "Trump", p: 26.8, v: 5524 }, o: 1.4 },
-    2016: { d: { n: "Clinton", p: 69.2, v: 13180 }, r: { n: "Trump", p: 27.4, v: 5213 }, o: 3.4 },
-  },
-  governor: {
-    2022: { d: { n: "Lamont" }, r: { n: "Stefanowski" }, note: "D carried EH — town split pending" },
-    2018: { d: { n: "Lamont" }, r: { n: "Stefanowski" }, note: "D carried EH — town split pending" },
-  },
-  mayor: {
-    2025: { d: { n: "Martin" }, r: null, note: "D — result pending" },
-    2023: { d: { n: "Martin", p: 74.3, v: 3106 }, r: { n: "Davis", p: 25.7, v: 1204 } },
-    2021: { d: { n: "Walsh" }, r: null, note: "D elected — margin pending" },
-    2019: { d: { n: "Leclerc" }, r: null, note: "D — result pending" },
-    2017: { d: { n: "Leclerc" }, r: null, note: "D — result pending" },
+  source: "CT Secretary of the State election database (electionhistory.ct.gov), polling-place returns.",
+  data: {
+    statehouse: {
+      2024: { d: "Genga", r: "Tierinni", bp: { "004": [2131, 687], "005": [1527, 755], "006": [1812, 1042] } },
+      2022: { d: "Genga", r: null, note: "Genga (D) unopposed — precinct data pending" },
+      2020: { d: "Genga", r: null, note: "Genga (D) re-elected — precinct data pending" },
+      2018: { d: "Genga", r: null, note: "Genga (D) re-elected — precinct data pending" },
+      2016: { d: "Genga", r: "Simpson", note: "Genga (D) def. Simpson (R) — precinct data pending" },
+    },
+    president: {
+      2024: { d: "Harris", r: "Trump", bp: { "004": [2220, 749], "005": [1605, 800], "006": [1908, 1016] } },
+      2020: { d: "Biden", r: "Trump", bp: { "004": [2781, 724], "005": [1934, 815], "006": [2163, 1016] } },
+      2016: { d: "Clinton", r: "Trump", bp: { "004": [2702, 625], "005": [1750, 724], "006": [1802, 1085] } },
+    },
+    governor: {
+      2022: { d: "Lamont", r: "Stefanowski", bp: { "004": [1357, 391], "005": [1019, 503], "006": [1280, 747] } },
+      2018: { d: "Lamont", r: "Stefanowski", bp: { "004": [1901, 507], "005": [1239, 636], "006": [1368, 988] } },
+    },
+    mayor: {
+      2025: { d: "Martin", r: null, note: "Martin (D) re-elected — precinct data pending" },
+      2023: { d: "Martin", r: "Davis", bp: { "004": [572, 134], "005": [454, 166], "006": [666, 240] } },
+      2021: { d: "Walsh", r: "Harper", bp: { "004": [573, 208], "005": [480, 331], "006": [682, 558] } },
+      2019: { d: "Leclerc", r: null, note: "Leclerc (D) — precinct data pending" },
+      2017: { d: "Leclerc", r: null, note: "Leclerc (D) — precinct data pending" },
+    },
   },
 };
 
@@ -415,22 +419,30 @@ function renderSignalTable() {
   $("#signal-table").innerHTML = `<thead><tr><th>Precinct</th><th>${m.label}</th><th>vs district</th></tr></thead><tbody>${rows}</tbody>`;
 }
 
-/* ════════════════════ HISTORY (mapped, by race) ════════════════════ */
+/* ════════════════════ HISTORY (real precinct returns, by race) ════════════════════ */
 let histMap, histLayer, histOffice = "statehouse", histYear = 2024;
-const histYears = office => Object.keys(HRES[office]).map(Number).sort((a, b) => b - a);
-const histResult = () => HRES[histOffice][histYear];
-const histMargin = res => (res && res.d && res.r && res.d.p != null && res.r.p != null) ? res.d.p - res.r.p : null;
+const histYears = office => Object.keys(HRES.data[office]).map(Number).sort((a, b) => b - a);
+const histEntry = () => HRES.data[histOffice][histYear];
+const hasBP = e => e && e.bp;
+const distTotals = e => hasBP(e)
+  ? Object.values(e.bp).reduce((a, [d, r]) => ({ d: a.d + d, r: a.r + r }), { d: 0, r: 0 })
+  : null;
+const margin = (d, r) => (d + r) ? Math.round(100 * (d - r) / (d + r)) : 0;
+function marginColor(m) {
+  if (m == null) return "#3A4658";
+  return m >= 0 ? fillSeq(m, 2, 60, hex2rgb(C.demLt)) : fillSeq(-m, 2, 60, hex2rgb(C.repLt));
+}
 
 function renderHistory() {
   $("#tab-history").innerHTML = `
-  <div class="page-head"><h2>District History</h2><p>How the district has voted, by office and year. Results are shown at the level the public record provides — <strong>HD-10 district</strong> for the seat, <strong>East Hartford town</strong> for the rest. Precinct splits drop in when supplied.</p></div>
+  <div class="page-head"><h2>District History</h2><p>How HD-10 has voted, by office and year — <strong>real precinct returns</strong> for voting districts 004 · 005 · 006. Pick a race; the map shades each precinct by its Democratic margin.</p></div>
   <div class="map-controls" style="position:static;margin-bottom:12px" id="hist-office"></div>
   <div class="map-controls" style="position:static;margin-bottom:16px" id="hist-year"></div>
   <div class="map-grid">
     <div class="mapcard"><div class="lmap" id="hist-map"></div><div class="maplegend" id="hist-legend"></div></div>
     <aside class="side"><div class="panel-card card-accent" id="hist-result" style="--accent:${C.dem}"></div></aside>
   </div>
-  <div class="sec-head"><h2>${HRES.meta[histOffice].label} — All Cycles</h2><div class="note">${HRES.meta[histOffice].level}</div></div>
+  <div class="sec-head" id="hist-sec"><h2>${HRES.meta[histOffice].label} — All Cycles</h2><div class="note">${HRES.meta[histOffice].sub}</div></div>
   <div class="table-wrap"><table class="tbl" id="hist-table"></table></div>
 
   <div class="sec-head"><h2>Turnout by Cycle</h2><div class="note">ballots on current rolls</div></div>
@@ -441,9 +453,7 @@ function renderHistory() {
         <div class="track" style="height:14px"><i style="width:${Math.round(100 * n / tmax)}%;--accent:${yr === "2024" ? C.tealLt : C.muted}"></i></div></div>`;
     }).join("")}
   </div>`;
-  renderHistControls();
-  renderHistResult();
-  renderHistTable();
+  renderHistControls(); renderHistResult(); renderHistTable();
 }
 function renderHistControls() {
   $("#hist-office").innerHTML = HRES.order.map(o => `<button class="seg-btn ${o === histOffice ? "on" : ""}" data-ho="${o}" type="button">${HRES.meta[o].label}</button>`).join("");
@@ -453,62 +463,63 @@ function renderHistControls() {
 }
 function refreshHistory() {
   renderHistControls(); paintHistMap(); renderHistResult(); renderHistTable();
-  const sh = $("#tab-history .sec-head h2"); if (sh) sh.textContent = `${HRES.meta[histOffice].label} — All Cycles`;
+  const sh = $("#hist-sec"); if (sh) sh.innerHTML = `<h2>${HRES.meta[histOffice].label} — All Cycles</h2><div class="note">${HRES.meta[histOffice].sub}</div>`;
 }
 function buildHistMap() { histMap = baseMap("hist-map"); paintHistMap(); }
 function paintHistMap() {
   if (!histMap) return;
   if (histLayer) histMap.removeLayer(histLayer);
-  const res = histResult(), m = histMargin(res);
-  const color = m == null ? "#3A4658" : fillSeq(m, 0, 55, hex2rgb(C.demLt));
+  const e = histEntry();
   histLayer = L.geoJSON(D.geo, {
-    style: () => featureStyle(color, false),
+    style: f => {
+      const cell = hasBP(e) ? e.bp[f.properties.id] : null;
+      return featureStyle(cell ? marginColor(margin(cell[0], cell[1])) : "#3A4658", false);
+    },
     onEachFeature: (f, layer) => {
-      const p = pById(f.properties.id);
-      const lbl = m == null ? "data pending" : `D +${Math.round(m)}`;
+      const p = pById(f.properties.id), cell = hasBP(e) ? e.bp[f.properties.id] : null;
+      const lbl = cell ? `${e.d.split(" ").pop()} +${Math.abs(margin(cell[0], cell[1]))}` : "data pending";
       layer.bindTooltip(`<span class="plabel">${p.name}<br>${lbl}</span>`, { permanent: true, direction: "center", className: "plabel-wrap" });
     },
   }).addTo(histMap);
-  legend($("#hist-legend"), `${HRES.meta[histOffice].label} ${histYear} · ${HRES.meta[histOffice].level}`,
-    m == null ? [["#3A4658", "Result pending"]] : [[C.demLt, "Democratic margin"], ["#3A4658", "Precinct split pending"]]);
+  legend($("#hist-legend"), `${HRES.meta[histOffice].label} ${histYear} · D margin`,
+    hasBP(e) ? [[fillSeq(55, 2, 60, hex2rgb(C.demLt)), "Stronger D"], [fillSeq(8, 2, 60, hex2rgb(C.demLt)), "Closer"]] : [["#3A4658", "Result pending"]]);
 }
 function renderHistResult() {
-  const res = histResult(), meta = HRES.meta[histOffice], m = histMargin(res);
-  const d = res.d || {}, r = res.r || {};
+  const e = histEntry(), meta = HRES.meta[histOffice], tot = distTotals(e);
   let body;
-  if (res.d && res.d.p != null && res.r && res.r.p != null) {
+  if (tot) {
+    const tp = tot.d + tot.r, dp = Math.round(1000 * tot.d / tp) / 10, rp = Math.round(1000 * tot.r / tp) / 10;
+    const prow = pid => {
+      const c = e.bp[pid]; if (!c) return "";
+      return `<div class="drow"><span class="l">${pById(pid).name}</span><span class="v">${margin(c[0], c[1]) >= 0 ? "D" : "R"} +${Math.abs(margin(c[0], c[1]))}<span style="color:var(--fg-muted);font-size:12px;font-weight:400"> · ${fmt(c[0])}–${fmt(c[1])}</span></span></div>`;
+    };
     body = `<div class="hist-row" style="margin-top:6px"><div class="dr-bar" style="height:30px">
-        <div class="d" style="width:${d.p}%">${d.p}%</div><div class="r" style="width:${r.p}%">${r.p}%</div></div></div>
-      <div class="rows" style="margin-top:16px">
-        ${drow(`${d.n} (D)`, `${d.p}%${d.v ? " · " + fmt(d.v) : ""}`)}
-        ${drow(`${r.n} (R)`, `${r.p}%${r.v ? " · " + fmt(r.v) : ""}`)}
-        ${drow("Margin", `D +${Math.round(m)} pts`)}
-      </div>`;
-  } else {
-    body = `<div class="rows" style="margin-top:10px">
-        ${drow("Winner", `${d.n || "—"} (D)`)}
-        ${r.n ? drow("Opponent", `${r.n} (R)`) : ""}
+        <div class="d" style="width:${dp}%">${dp}%</div><div class="r" style="width:${rp}%">${rp}%</div></div></div>
+      <div class="rows" style="margin-top:14px">
+        ${drow(`${e.d} (D)`, `${dp}% · ${fmt(tot.d)}`)}
+        ${drow(`${e.r} (R)`, `${rp}% · ${fmt(tot.r)}`)}
       </div>
-      <div class="callout" style="margin-top:14px">${res.note || "Result pending."}</div>`;
+      <div class="kk" style="margin:16px 0 2px">By precinct</div>
+      <div class="rows">${["004", "005", "006"].map(prow).join("")}</div>`;
+  } else {
+    body = `<div class="rows" style="margin-top:10px">${drow("Winner", `${e.d} (D)`)}${e.r ? drow("Opponent", `${e.r} (R)`) : ""}</div>
+      <div class="callout" style="margin-top:14px">${e.note || "Result pending."}</div>`;
   }
-  $("#hist-result").innerHTML = `<div class="pc-top"><div><h3>${meta.label} ${histYear}</h3>
-      <div class="kk" style="margin-top:5px">${meta.level}</div></div>
-      <span class="tag" style="color:${C.demLt}">Dem ${m != null ? "+" + Math.round(m) : "hold"}</span></div>
+  $("#hist-result").innerHTML = `<div class="pc-top"><div><h3>${meta.label} ${histYear}</h3><div class="kk" style="margin-top:5px">${meta.sub}</div></div>
+      <span class="tag" style="color:${C.demLt}">${tot ? "D +" + margin(tot.d, tot.r) : "Dem"}</span></div>
     ${body}
-    <p style="color:var(--fg-dim);font-size:11.5px;line-height:1.5;margin-top:14px">Source: ${meta.source}. ${meta.level === "East Hartford town" ? "Town-wide figure; HD-10 precinct splits pending." : ""}</p>`;
+    <p style="color:var(--fg-dim);font-size:11.5px;line-height:1.5;margin-top:14px">Source: ${HRES.source}</p>`;
 }
 function renderHistTable() {
   const rows = histYears(histOffice).map(y => {
-    const res = HRES[histOffice][y], m = histMargin(res), d = res.d || {}, r = res.r || {};
-    const result = (res.d && res.d.p != null && res.r && res.r.p != null)
-      ? `<b>${d.p}%</b> – ${r.p}%`
-      : `<span style="color:var(--fg-muted)">${res.note || "pending"}</span>`;
-    return `<tr><td><b>${y}</b></td>
-      <td>${d.n || "—"} (D)${r.n ? " · " + r.n + " (R)" : ""}</td>
-      <td>${result}</td>
-      <td>${m != null ? `<span style="color:${C.demLt}">D +${Math.round(m)}</span>` : "—"}</td></tr>`;
+    const e = HRES.data[histOffice][y], tot = distTotals(e);
+    if (tot) {
+      const tp = tot.d + tot.r, dp = Math.round(1000 * tot.d / tp) / 10, rp = Math.round(1000 * tot.r / tp) / 10;
+      return `<tr><td><b>${y}</b></td><td>${e.d} (D) · ${e.r} (R)</td><td><b>${dp}%</b> – ${rp}%</td><td><span style="color:${C.demLt}">D +${margin(tot.d, tot.r)}</span></td></tr>`;
+    }
+    return `<tr><td><b>${y}</b></td><td>${e.d} (D)${e.r ? " · " + e.r + " (R)" : ""}</td><td colspan="2"><span style="color:var(--fg-muted)">${e.note || "pending"}</span></td></tr>`;
   }).join("");
-  $("#hist-table").innerHTML = `<thead><tr><th>Year</th><th>Candidates</th><th>Result</th><th>Margin</th></tr></thead><tbody>${rows}</tbody>`;
+  $("#hist-table").innerHTML = `<thead><tr><th>Year</th><th>Candidates</th><th>Result (HD-10)</th><th>Margin</th></tr></thead><tbody>${rows}</tbody>`;
 }
 
 /* ════════════════════ BOOT ════════════════════ */
