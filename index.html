@@ -127,6 +127,21 @@ header::before{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;b
 .mc.cell.best .cv{color:var(--gold-lt)}
 .istat{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
 
+/* universe */
+.winhero{background:linear-gradient(160deg,rgba(212,160,23,.16),rgba(15,33,64,.55));border:1px solid rgba(212,160,23,.34);border-radius:var(--r);padding:22px;display:flex;flex-direction:column}
+.winhero .v{font-family:var(--disp);font-weight:700;font-size:66px;line-height:.9;color:var(--gold-lt)}
+.winhero .l{font-family:var(--disp);font-weight:600;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px}
+.wbar{height:16px;border-radius:8px;background:#0F1A2C;overflow:hidden;position:relative;margin-top:auto}
+.wbar>i{display:block;height:100%}
+.histwrap{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.hbar{display:grid;grid-template-columns:74px 1fr 64px;align-items:center;gap:12px;margin-bottom:10px}
+.hbar .ht{font-family:var(--disp);font-size:13px;color:var(--fg-muted)} .hbar .hv{font-family:var(--disp);font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.htrack{height:18px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden} .htrack>i{display:block;height:100%;border-radius:5px}
+.pyramid{display:flex;flex-direction:column;gap:11px}
+.prow2{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:14px}
+.prow2 .plab{display:flex;flex-direction:column} .prow2 .plab .pt{font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:.4px} .prow2 .plab .ps{font-size:11px;color:var(--fg-muted)}
+.pbar2{height:30px;display:flex;border-radius:6px;overflow:hidden;background:#0F1A2C}
+.pbar2 i{display:flex;align-items:center;justify-content:center;height:100%;font-family:var(--disp);font-weight:700;font-size:12px;color:#fff;min-width:0;overflow:hidden}
 footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} footer b{color:var(--fg-muted)}
 .note{background:rgba(34,170,188,.07);border:1px solid rgba(34,170,188,.22);border-radius:8px;padding:11px 14px;font-size:12px;color:var(--fg-muted);margin-top:16px;line-height:1.5}
 .note b{color:var(--fg)}
@@ -154,6 +169,7 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
 
 <div class="tabs">
   <div class="tab on" data-tab="map">Battle Map</div>
+  <div class="tab" data-tab="universe">Universe</div>
   <div class="tab" data-tab="issues">Issues</div>
   <div class="tab" data-tab="play">Strategy</div>
 </div>
@@ -172,6 +188,15 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
     </div>
     <div class="block"><div class="shead"><span class="t">The Numbers That Matter</span><span class="ln"></span></div><div class="tgrid" id="takeaways"></div></div>
     <div class="block"><div class="shead"><span class="t">Precinct by Precinct</span><span class="ln"></span></div><div class="pcards" id="pcards"></div></div>
+  </div>
+
+  <!-- UNIVERSE -->
+  <div class="panel" id="tab-universe">
+    <div class="ptitle"><h1>The Universe</h1><span class="kick">who votes · who to chase · the number</span></div>
+    <div class="hero" id="u-top"></div>
+    <div class="block"><div class="shead"><span class="t">Who Shows Up — Turnout Pyramid</span><span class="ln"></span></div><div class="pyramid" id="u-pyramid"></div><div class="note" id="u-pnote"></div></div>
+    <div class="block"><div class="shead"><span class="t">The Target Universe</span><span class="ln"></span></div><div class="pcards" id="u-targets"></div></div>
+    <div class="block"><div class="shead"><span class="t">By Precinct</span><span class="ln"></span></div><div class="matrix" id="u-prec"></div></div>
   </div>
 
   <!-- ISSUES -->
@@ -203,7 +228,7 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
 </div>
 
 <script src="assets/leaflet.js"></script>
-<script src="data/hd10.js?v=2"></script>
-<script src="app.js?v=2"></script>
+<script src="data/hd10.js?v=4"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
