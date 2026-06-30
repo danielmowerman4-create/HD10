@@ -267,6 +267,78 @@ function uPrec() {
 
 uTop(); uPyramid(); uTargets(); uPrec();
 
+/* ============ TARGET UNIVERSE (Republican chase list — real, from the file) ============ */
+const TG = window.HD10_TARGET;
+if (TG) {
+  const SEGORD = ["seg_R", "seg_U_with_R", "seg_U_highprop", "seg_U_recent", "seg_U_newer", "seg_U_sel2"];
+  const SEGFILL = {
+    seg_R: "#E05555", seg_U_with_R: "#F0B82A", seg_U_highprop: "#22AABC",
+    seg_U_recent: "#34D399", seg_U_newer: "#A78BFA", seg_U_sel2: "#E8943A",
+  };
+  $("#t-stats").innerHTML = [
+    ["gold", fmt(TG.target_size), "Target universe", TG.target_pct_active + "% of active voters"],
+    ["teal", fmt(TG.projected_vote), "Projected vote", "likely 2026 — voted ≥2 of last 4"],
+    ["npa", fmt(TG.gotv), "High-priority GOTV", "in target · need a turnout push"],
+    ["rep", TG.party_pct.U + "%", "Unaffiliated share", "built on persuasion, not base"],
+  ].map(([c, v, l, s]) => `<div class="tcard ${c}"><div class="v">${v}</div><div class="l">${l}</div><div class="s">${s}</div></div>`).join("");
+
+  const segMax = Math.max(...SEGORD.map(k => TG.segments[k].n));
+  $("#t-segs").innerHTML = SEGORD.map(k => {
+    const s = TG.segments[k], w = Math.round(100 * s.n / segMax);
+    return `<div class="hbar" style="grid-template-columns:1fr">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+        <span style="font-family:var(--disp);font-weight:700;font-size:14px;letter-spacing:.3px">${s.label}</span>
+        <span style="font-family:var(--disp);font-weight:700;font-size:14px;color:${SEGFILL[k]}">${fmt(s.n)} <span style="color:var(--fg-muted);font-size:12px">· ${s.pct_of_target}%</span></span>
+      </div>
+      <div class="htrack" style="height:13px"><i style="width:${w}%;background:${SEGFILL[k]}"></i></div>
+    </div>`;
+  }).join("");
+  $("#t-segnote").innerHTML = `<b>How to read this:</b> a voter enters the universe by meeting <b>any</b> rule, so segments overlap and don't sum to the total. Every voter is a Republican or an Unaffiliated — <b>no Democrats</b> are targeted. Household rules group by street address; "Republican household" and the Democrat-count filter use active registrants at the address.`;
+
+  const splitCards = [
+    ["teal", fmt(TG.projected_vote), "Projected Vote", "Likely 2026", `Voted in ≥2 of the last 4 generals. ${pct(TG.projected_vote, TG.target_size)}% of the target — your <b>persuasion &amp; turnout</b> universe. Build the win number here first.`],
+    ["npa", fmt(TG.gotv), "High-Priority GOTV", "Needs a push", `In the target but voted ≤1 of the last 4. ${pct(TG.gotv, TG.target_size)}% of the target — chase mail, doors, and reminders. Votes left on the table.`],
+    ["gold", fmt(TG.segments.seg_U_with_R.n), "Soft-R Households", "Persuade early", `Unaffiliated who live with a Republican — the cleanest persuasion signal in the file. Talk to them with the household.`],
+  ];
+  $("#t-split").innerHTML = splitCards.map(([c, v, t, role, p]) => {
+    const col = c === "teal" ? "var(--teal-lt)" : c === "npa" ? "var(--npa-lt)" : "var(--gold-lt)";
+    return `<div class="pc" style="border-top-color:${col};cursor:default">
+      <div class="pch"><span class="pcn">${t}</span><span class="role" style="color:${col};background:rgba(255,255,255,.05);border:1px solid ${col}">${role}</span></div>
+      <div class="pcv" style="color:${col}">${v}</div><div class="pcl">of ${fmt(TG.target_size)} in target</div>
+      <p style="font-size:12px;color:var(--fg-muted);line-height:1.5;margin-top:12px">${p}</p></div>`;
+  }).join("");
+
+  const distEntries = Object.entries(TG.by_district).sort((a, b) => b[1] - a[1]);
+  const distMax = Math.max(...distEntries.map(d => d[1]));
+  const gbar = (l, v, d, col) => `<div class="bar"><div class="bt"><span>${l}</span><b>${fmt(v)} · ${pct(v, d)}%</b></div><div class="track"><i style="width:${pct(v, d)}%;background:${col}"></i></div></div>`;
+  $("#t-comp").innerHTML =
+    `<div class="pdetail">
+       <div class="top"><span class="pn">Who's in the target</span></div>
+       <div class="kick" style="margin-top:3px">${fmt(TG.target_size)} active voters · avg age ${TG.avg_age}</div>
+       <div class="bars" style="margin-top:14px">
+         ${gbar("Republican", TG.party.R, TG.target_size, "var(--rep)")}
+         ${gbar("Unaffiliated", TG.party.U, TG.target_size, "var(--npa)")}
+       </div>
+       <div class="dstat" style="margin-top:14px"><span>Women</span><b>${fmt(TG.gender.F)} · ${pct(TG.gender.F, TG.target_size)}%</b></div>
+       <div class="dstat"><span>Men</span><b>${fmt(TG.gender.M)} · ${pct(TG.gender.M, TG.target_size)}%</b></div>
+       <div class="dstat"><span>Average age</span><b>${TG.avg_age}</b></div>
+     </div>
+     <div class="side">
+       <div class="pdetail">
+         <div class="kick" style="margin-bottom:12px">Target by voting district</div>
+         ${distEntries.map(([name, v]) => `<div style="margin-bottom:12px"><div class="bt" style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>${name}</span><b style="font-family:var(--disp);font-size:13px;color:var(--gold-lt)">${fmt(v)}</b></div><div class="track"><i style="width:${Math.round(100 * v / distMax)}%;background:var(--gold)"></i></div></div>`).join("")}
+         <div class="note" style="margin-top:6px">Evenly spread — no single precinct carries the universe. Resource all three.</div>
+       </div>
+     </div>`;
+
+  $("#t-plays").innerHTML = [
+    ["Bank the likely voters", `<b>${fmt(TG.projected_vote)}</b> target voters already turn out (≥2 of 4 generals). Lead with persuasion and ID — don't waste GOTV budget reminding people who always vote.`],
+    ["Push the GOTV pool", `<b>${fmt(TG.gotv)}</b> targets vote rarely (≤1 of 4). These are winnable votes that only count if they show — mail, doors, chase, absentee/early-vote nudges.`],
+    ["Work the household", `<b>${fmt(TG.segments.seg_U_with_R.n)}</b> unaffiliated share a roof with a Republican and <b>${fmt(TG.segments.seg_U_sel2.n)}</b> selective 2/4 voters sit in low-Democrat homes. Canvass the household, not just the voter.`],
+    ["Define the new movers", `<b>${fmt(TG.segments.seg_U_newer.n)}</b> newer persuadables registered since 2023. First contact wins — reach them before the other side frames the race.`],
+  ].map(([h, p], i) => `<div class="play"><div class="n">${i + 1}</div><div><h3>${h}</h3><p>${p}</p></div></div>`).join("");
+}
+
 /* ============ STRATEGY ============ */
 $("#winstat").innerHTML = [
   ["npa", fmt(T.persuade), "Persuasion universe", "the only path to 50%"],

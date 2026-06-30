@@ -170,6 +170,7 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
 <div class="tabs">
   <div class="tab on" data-tab="map">Battle Map</div>
   <div class="tab" data-tab="universe">Universe</div>
+  <div class="tab" data-tab="target">Target</div>
   <div class="tab" data-tab="issues">Issues</div>
   <div class="tab" data-tab="play">Strategy</div>
 </div>
@@ -197,6 +198,16 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
     <div class="block"><div class="shead"><span class="t">Who Shows Up — Turnout Pyramid</span><span class="ln"></span></div><div class="pyramid" id="u-pyramid"></div><div class="note" id="u-pnote"></div></div>
     <div class="block"><div class="shead"><span class="t">The Target Universe</span><span class="ln"></span></div><div class="pcards" id="u-targets"></div></div>
     <div class="block"><div class="shead"><span class="t">By Precinct</span><span class="ln"></span></div><div class="matrix" id="u-prec"></div></div>
+  </div>
+
+  <!-- TARGET -->
+  <div class="panel" id="tab-target">
+    <div class="ptitle"><h1>The Target Universe</h1><span class="kick">who to chase · likely voters · GOTV</span></div>
+    <div class="tgrid" id="t-stats" style="margin-bottom:8px"></div>
+    <div class="block"><div class="shead"><span class="t">The Build — Six Segments</span><span class="ln"></span></div><div class="histwrap" id="t-segs"></div><div class="note" id="t-segnote"></div></div>
+    <div class="block"><div class="shead"><span class="t">Likely Voters vs. Needs a Push</span><span class="ln"></span></div><div class="pcards" id="t-split"></div></div>
+    <div class="block"><div class="shead"><span class="t">Composition</span><span class="ln"></span></div><div class="hero" id="t-comp"></div></div>
+    <div class="block"><div class="shead"><span class="t">2026 Playbook</span><span class="ln"></span></div><div class="plays" id="t-plays"></div></div>
   </div>
 
   <!-- ISSUES -->
@@ -228,7 +239,8 @@ footer{padding:34px 0 40px;color:var(--fg-dim);font-size:11px;line-height:1.6} f
 </div>
 
 <script src="assets/leaflet.js"></script>
-<script src="data/hd10.js?v=4"></script>
-<script src="app.js?v=4"></script>
+<script src="data/hd10.js?v=5"></script>
+<script src="data/target.js?v=5"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>
