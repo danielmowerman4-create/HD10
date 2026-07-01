@@ -231,6 +231,15 @@ function renderOverview() {
 /* ════════════════════ PRECINCTS ════════════════════ */
 let precinctMap, precinctLayer;
 const rankedByTargets = () => [...P].sort((a, b) => (tgPrec(b.id)?.target || 0) - (tgPrec(a.id)?.target || 0));
+let selectedPrecinct = rankedByTargets()[0].id;
+
+/* Small chart builders (shared by the detail panels) */
+function dRow(label, w, color, val, lw) {
+  return `<div class="demo-row"><div class="demo-lbl" style="${lw ? `width:${lw}px;` : ""}">${label}</div><div class="demo-track"><div class="demo-fill" style="width:${Math.max(2, Math.min(100, w))}%;background:${color};"></div></div><div class="demo-pct">${val}</div></div>`;
+}
+function trayBars(title, meta, rowsHtml) {
+  return `<div class="chart-tray"><div class="chart-tray-head"><div class="chart-tray-hd">${title}</div>${meta ? `<div class="chart-tray-meta">${meta}</div>` : ""}</div><div class="demo-section" style="padding-top:4px;">${rowsHtml}</div></div>`;
+}
 
 function renderPrecincts() {
   const order = rankedByTargets();
@@ -241,9 +250,9 @@ function renderPrecincts() {
     "Persuasion Priority": "Largest persuadable NPA bloc — persuade.",
   };
   const rows = order.map((p, i) => {
-    const r = roleOf(p), tp = tgPrec(p.id), n = tp ? tp.target : 0, m = mayor25Margin(p.id);
+    const r = roleOf(p), tp = tgPrec(p.id), n = tp ? tp.target : 0, m = mayor25Margin(p.id), sel = p.id === selectedPrecinct;
     return `
-    <div class="rank-row" style="border:1px solid var(--border);border-left:3px solid ${r.color};border-radius:8px;background:rgba(15,26,44,.5);padding:18px;">
+    <div class="rank-row${sel ? " sel" : ""}" data-psel="${p.id}" style="border:1px solid ${sel ? r.color : "var(--border)"};border-left:3px solid ${r.color};border-radius:8px;background:rgba(15,26,44,.5);padding:18px;">
       <div style="display:flex;align-items:center;gap:16px;">
         <div style="font-family:var(--ff-display);font-weight:900;font-size:26px;color:${r.colorLt};width:26px;text-align:center;flex-shrink:0;">${i + 1}</div>
         <div style="flex:1;min-width:0;">
@@ -274,7 +283,7 @@ function renderPrecincts() {
     <div>
       <div class="eyebrow">Precincts</div>
       <h1>Field Ranking</h1>
-      <div class="sub">Where to deploy — ranked by target concentration</div>
+      <div class="sub">Where to deploy — ranked by targets · click a precinct for its full electorate profile</div>
     </div>
     <div class="right">
       <div class="live-row"><span class="live-dot"></span> 3 Precincts</div>
@@ -287,7 +296,7 @@ function renderPrecincts() {
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div class="chart-tray" style="padding:0;overflow:hidden;">
         <div style="display:flex;justify-content:space-between;align-items:baseline;padding:14px 16px 10px;">
-          <div class="chart-tray-hd">Precinct Map</div><div class="chart-tray-meta">East Hartford · Role</div>
+          <div class="chart-tray-hd">Precinct Map</div><div class="chart-tray-meta">Click to inspect</div>
         </div>
         <div style="padding:0 14px 14px;position:relative;">
           <div class="lmap" id="precinct-map" style="height:290px;min-height:0;max-height:none;"></div>
@@ -304,17 +313,111 @@ function renderPrecincts() {
         </div>
       </div>
     </div>
-  </div>`;
+  </div>
+
+  <div class="sec-head"><h2>Precinct Profile</h2><div class="note" id="precinct-profile-name"></div></div>
+  <div id="precinct-detail"></div>`;
+  $$("[data-psel]").forEach(el => el.addEventListener("click", () => selectPrecinct(el.dataset.psel)));
+  renderPrecinctDetail();
+}
+function selectPrecinct(id) {
+  selectedPrecinct = id;
+  $$("[data-psel]").forEach(el => {
+    const on = el.dataset.psel === id, r = roleOf(pById(id));
+    el.classList.toggle("sel", on);
+    el.style.borderColor = on ? roleOf(pById(el.dataset.psel)).color : "var(--border)";
+    el.style.borderLeftColor = roleOf(pById(el.dataset.psel)).color;
+  });
+  renderPrecinctDetail();
+  paintPrecinctMap();
+}
+function renderPrecinctDetail() {
+  const el = $("#precinct-detail"); if (!el) return;
+  const p = pById(selectedPrecinct), r = roleOf(p), tp = tgPrec(p.id);
+  const nm = $("#precinct-profile-name"); if (nm) nm.textContent = `${p.name} · ${p.id} · full electorate`;
+
+  // Registration party bar (D/R/U/O)
+  const oPct = Math.max(0, Math.round((100 - p.pct.D - p.pct.R - p.pct.U) * 10) / 10);
+  const regBar = `<div class="party-bar-track" style="height:28px;">
+      <div class="pb-d" style="width:${p.pct.D}%;">D ${p.pct.D}%</div>
+      <div class="pb-n" style="width:${p.pct.U}%;">U ${p.pct.U}%</div>
+      <div class="pb-r" style="width:${p.pct.R}%;">R ${p.pct.R}%</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:var(--ff-display);font-size:10px;letter-spacing:1px;text-transform:uppercase;">
+      <span style="color:var(--dem-lt);">Dem ${fmt(p.party.D)}</span>
+      <span style="color:var(--npa-lt);">Unaff ${fmt(p.party.U)}</span>
+      <span style="color:var(--rep-lt);">Rep ${fmt(p.party.R)}</span>
+    </div>`;
+
+  // Age brackets (real counts from br)
+  const brOrder = [["young", "18–34"], ["parent", "35–54"], ["mid", "55–64"], ["senior", "65+"]];
+  const brTot = brOrder.reduce((s, [k]) => s + p.br[k].n, 0);
+  const ageRows = brOrder.map(([k, lbl], i) =>
+    dRow(lbl, 100 * p.br[k].n / brTot, [C.npa, C.teal, C.gold, C.demLt][i], `${Math.round(100 * p.br[k].n / brTot)}%`, 56)).join("");
+
+  // Vote propensity (real tiers)
+  const tOrder = [["prime", "Prime · 4/4"], ["likely", "Likely · 3/4"], ["dropoff", "Drop-off"], ["unlikely", "Unlikely"]];
+  const tTot = tOrder.reduce((s, [k]) => s + p.tiers[k].n, 0);
+  const propRows = tOrder.map(([k, lbl], i) =>
+    dRow(lbl, 100 * p.tiers[k].n / tTot, [C.tealLt, C.gold, C.goldLt, C.muted][i], `${Math.round(100 * p.tiers[k].n / tTot)}%`, 96)).join("");
+
+  // How they vote (method — % of 2024 voters)
+  const methodRows = [
+    dRow("Election Day", pval(p.id, "eday"), C.teal, `${pval(p.id, "eday")}%`, 108),
+    dRow("Early in-person", pval(p.id, "early"), C.gold, `${pval(p.id, "early")}%`, 108),
+    dRow("Absentee / mail", pval(p.id, "vbm"), C.npa, `${pval(p.id, "vbm")}%`, 108),
+  ].join("");
+
+  // Turnout by cycle
+  const th = p.hist, thMax = maxOf([th.y2018, th.y2022, th.y2024]);
+  const toBars = [["2018", th.y2018], ["2022", th.y2022], ["2024", th.y2024]].map(([yr, n], i) => {
+    const last = i === 2;
+    return `<div class="col"><div class="n" style="color:${last ? "var(--gold-lt)" : "var(--fg)"}">${fmt(n)}</div>
+      <div class="bar" style="height:${Math.round(88 * n / thMax)}px;background:${last ? "var(--gold)" : "var(--teal)"};opacity:${last ? 1 : .85};"></div>
+      <div class="yr" style="${last ? "color:var(--fg);font-weight:600;" : ""}">${yr}</div></div>`;
+  }).join("");
+
+  el.innerHTML = `
+    <div class="chart-tray" style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div style="font-family:var(--ff-display);font-weight:800;font-size:22px;letter-spacing:.5px;text-transform:uppercase;">${p.name}</div>
+        <span style="padding:3px 9px;border-radius:2px;background:${r.tint};border:1px solid ${r.bd};color:${r.colorLt};font-family:var(--ff-display);font-weight:600;font-size:10px;letter-spacing:2px;text-transform:uppercase;">${r.key}</span>
+        <div style="margin-left:auto;display:flex;gap:26px;">
+          <div><div class="stat-lbl">Active Reg</div><div class="stat-val">${fmt(p.active)}</div></div>
+          <div><div class="stat-lbl">Turnout '24</div><div class="stat-val gold">${p.v24_pct}%</div></div>
+          <div><div class="stat-lbl">Targets</div><div class="stat-val teal">${tp ? fmt(tp.target) : "—"}</div></div>
+          <div><div class="stat-lbl">Avg Age</div><div class="stat-val">${p.avg_age}</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-grid">
+      <div class="chart-tray"><div class="chart-tray-head"><div class="chart-tray-hd">Who's There</div><div class="chart-tray-meta">Registration</div></div><div style="margin-top:6px;">${regBar}</div></div>
+      ${trayBars("Age Breakdown", "Active voters", ageRows)}
+      ${trayBars("How Often They Vote", "Last 4 generals", propRows)}
+      ${trayBars("How They Vote", "Of '24 voters", methodRows)}
+      <div class="chart-tray"><div class="chart-tray-head"><div class="chart-tray-hd">Turnout by Cycle</div><div class="chart-tray-meta">Ballots</div></div><div class="mini-bars">${toBars}</div></div>
+      ${trayBars("Signals", "Share of active", [
+        dRow("Unaffiliated", pval(p.id, "unaff"), C.npa, `${pval(p.id, "unaff")}%`, 108),
+        dRow("Midterm drop-off", pval(p.id, "dropoff"), C.gold, `${pval(p.id, "dropoff")}%`, 108),
+        dRow("New movers", pval(p.id, "newmover"), C.tealLt, `${pval(p.id, "newmover")}%`, 108),
+        dRow("Single-voter homes", pval(p.id, "solo"), C.demLt, `${pval(p.id, "solo")}%`, 108),
+      ].join(""))}
+    </div>`;
 }
 function buildPrecinctMap() { precinctMap = baseMap("precinct-map"); paintPrecinctMap(); }
 function paintPrecinctMap() {
   if (!precinctMap) return;
   if (precinctLayer) precinctMap.removeLayer(precinctLayer);
   precinctLayer = L.geoJSON(D.geo, {
-    style: f => featureStyle(roleOf(pById(f.properties.id)).color, false),
+    style: f => featureStyle(roleOf(pById(f.properties.id)).color, f.properties.id === selectedPrecinct),
     onEachFeature: (f, layer) => {
       const p = pById(f.properties.id), r = roleOf(p);
       layer.bindTooltip(`<span class="plabel">${p.name}<br>${r.short}</span>`, { permanent: true, direction: "center", className: "plabel-wrap" });
+      layer.on({
+        mouseover: e => e.target.setStyle({ weight: 3, color: "#fff" }),
+        mouseout: () => paintPrecinctMap(),
+        click: () => selectPrecinct(p.id),
+      });
     },
   }).addTo(precinctMap);
   legend($("#precinct-legend"), "Priority Role",
@@ -322,7 +425,7 @@ function paintPrecinctMap() {
 }
 
 /* ════════════════════ VOTERS ════════════════════ */
-let votersMap, votersLayer;
+let votersMap, votersLayer, selectedVoterPrec = "006";
 function renderVoters() {
   if (!TG) { $("#tab-voters").innerHTML = ""; return; }
   const ut = TG.universe_turnout, g = TG.gender, pr = TG.party_pct;
@@ -416,7 +519,7 @@ function renderVoters() {
         <div style="padding:0 14px 14px;">
           <div class="lmap" id="voters-map" style="height:220px;min-height:0;max-height:none;"></div>
           <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;">
-            ${precs.map(p => `<div style="display:flex;align-items:center;gap:9px;font-size:11px;color:var(--fg);"><span style="width:20px;height:9px;border-radius:2px;background:${p.role.color};"></span> ${p.name} · ${fmt(p.target)} targets</div>`).join("")}
+            ${precs.map(p => `<div class="linklike" data-vsel="${p.id}" style="display:flex;align-items:center;gap:9px;font-size:11px;color:var(--fg);text-decoration:none;"><span style="width:20px;height:9px;border-radius:2px;background:${p.role.color};"></span> ${p.name} · ${fmt(p.target)} targets</div>`).join("")}
           </div>
         </div>
       </div>
@@ -433,7 +536,53 @@ function renderVoters() {
         </div>
       </div>
     </div>
-  </div>`;
+  </div>
+
+  <div class="sec-head"><h2>Targets by Precinct</h2><div class="note" id="voter-detail-name"></div></div>
+  <div id="voter-detail"></div>`;
+  $$("[data-vsel]").forEach(el => el.addEventListener("click", () => selectVoterPrec(el.dataset.vsel)));
+  renderVoterDetail();
+}
+function selectVoterPrec(id) { selectedVoterPrec = id; renderVoterDetail(); paintVotersMap(); }
+function renderVoterDetail() {
+  const el = $("#voter-detail"); if (!el || !TG) return;
+  const id = selectedVoterPrec, tp = TG.precinct[id], p = pById(id), r = roleOf(p);
+  const nm = $("#voter-detail-name"); if (nm) nm.textContent = `${tp.name} · ${fmt(tp.target)} targets`;
+  const uPct = pct(tp.party.U, tp.target), rPct = pct(tp.party.R, tp.target);
+  const womenPct = pct(tp.gender.F, tp.target), menPct = pct(tp.gender.M, tp.target);
+  const lockPct = pct(tp.locked_in, tp.target), restPct = 100 - lockPct;
+
+  el.innerHTML = `
+    <div class="chart-tray" style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div style="font-family:var(--ff-display);font-weight:800;font-size:22px;letter-spacing:.5px;text-transform:uppercase;">${tp.name}</div>
+        <span style="padding:3px 9px;border-radius:2px;background:${r.tint};border:1px solid ${r.bd};color:${r.colorLt};font-family:var(--ff-display);font-weight:600;font-size:10px;letter-spacing:2px;text-transform:uppercase;">${r.key}</span>
+        <div style="margin-left:auto;display:flex;gap:26px;">
+          <div><div class="stat-lbl">Targets</div><div class="stat-val teal">${fmt(tp.target)}</div></div>
+          <div><div class="stat-lbl">Likely Voters</div><div class="stat-val">${fmt(tp.likely_voters)}</div></div>
+          <div><div class="stat-lbl">Of Likely</div><div class="stat-val gold">${tp.target_pct_of_turnout}%</div></div>
+          <div><div class="stat-lbl">Avg Age</div><div class="stat-val">${tp.avg_age}</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-grid">
+      <div class="chart-tray"><div class="chart-tray-head"><div class="chart-tray-hd">Who We Target</div><div class="chart-tray-meta">Registration</div></div>
+        <div class="party-bar-track" style="height:28px;margin-top:6px;"><div class="pb-n" style="width:${uPct}%;">NPA ${uPct}%</div><div class="pb-r" style="width:${rPct}%;">R ${rPct}%</div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:var(--ff-display);font-size:10px;letter-spacing:1px;text-transform:uppercase;"><span style="color:var(--npa-lt);">Unaff ${fmt(tp.party.U)}</span><span style="color:var(--rep-lt);">Rep ${fmt(tp.party.R)}</span></div>
+      </div>
+      ${trayBars("Gender", "Of targets", [
+        dRow("Women", womenPct, C.demLt, `${womenPct}%`, 64),
+        dRow("Men", menPct, C.tealLt, `${menPct}%`, 64),
+      ].join(""))}
+      ${trayBars("How Reliable", "Of targets", [
+        dRow("Locked-in 3–4/4", lockPct, C.tealLt, `${lockPct}%`, 108),
+        dRow("Rest of universe", restPct, C.gold, `${restPct}%`, 108),
+      ].join(""))}
+      <div class="chart-tray"><div class="chart-tray-head"><div class="chart-tray-hd">Turnout Anchor</div><div class="chart-tray-meta">Targets who voted '24</div></div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-top:12px;"><div style="font-family:var(--ff-display);font-weight:700;font-size:34px;color:var(--teal-lt);font-variant-numeric:tabular-nums;">${fmt(tp.voted_2024)}</div><div class="stat-lbl" style="margin:0;">voted 2024 · ${pct(tp.voted_2024, tp.target)}% of targets</div></div>
+        <div class="demo-track" style="height:8px;margin-top:12px;"><div class="demo-fill" style="width:${pct(tp.voted_2024, tp.target)}%;background:var(--teal);"></div></div>
+      </div>
+    </div>`;
 }
 function buildVotersMap() { votersMap = baseMap("voters-map"); paintVotersMap(); }
 function paintVotersMap() {
@@ -442,13 +591,18 @@ function paintVotersMap() {
   const maxT = Math.max(...P.map(p => tgPrec(p.id)?.target || 0));
   votersLayer = L.geoJSON(D.geo, {
     style: f => {
-      const p = pById(f.properties.id), tp = tgPrec(p.id), r = roleOf(p);
+      const p = pById(f.properties.id), tp = tgPrec(p.id), r = roleOf(p), on = p.id === selectedVoterPrec;
       const t = tp ? tp.target / maxT : 0;
-      return { fillColor: r.color, fillOpacity: .45 + .5 * t, color: "rgba(255,255,255,.55)", weight: 1.2, opacity: 1 };
+      return { fillColor: r.color, fillOpacity: .45 + .5 * t, color: on ? "#fff" : "rgba(255,255,255,.55)", weight: on ? 3 : 1.2, opacity: 1 };
     },
     onEachFeature: (f, layer) => {
       const p = pById(f.properties.id), tp = tgPrec(p.id);
       layer.bindTooltip(`<span class="plabel">${p.name}<br>${tp ? fmt(tp.target) : 0}</span>`, { permanent: true, direction: "center", className: "plabel-wrap" });
+      layer.on({
+        mouseover: e => e.target.setStyle({ weight: 3, color: "#fff" }),
+        mouseout: () => paintVotersMap(),
+        click: () => selectVoterPrec(p.id),
+      });
     },
   }).addTo(votersMap);
 }
@@ -521,29 +675,25 @@ function renderSignalTable() {
 }
 
 /* ════════════════════ HISTORY (real precinct returns, by race) ════════════════════ */
-const mayorTotals = e => e.bp
+let histMap, histLayer, histOffice = "mayor", histYear = 2025;
+const histYears = office => Object.keys(HRES.data[office]).map(Number).sort((a, b) => b - a);
+const histEntry = () => HRES.data[histOffice][histYear];
+const hasBP = e => e && e.bp;
+const distTotals = e => hasBP(e)
   ? Object.values(e.bp).reduce((a, [d, r]) => ({ d: a.d + d, r: a.r + r }), { d: 0, r: 0 })
   : null;
+// Sequential ramp: light = closer race, deep = safer. Blue for D, red for R.
+const HIST_DOM = [8, 58];
+const D_RAMP = [[224, 238, 255], [21, 46, 130]];
+const R_RAMP = [[255, 226, 224], [120, 18, 18]];
+function marginColor(m) {
+  if (m == null) return "#33415A";
+  const [lo, hi] = HIST_DOM, t = Math.max(0, Math.min(1, (Math.abs(m) - lo) / (hi - lo)));
+  const [a, b] = m >= 0 ? D_RAMP : R_RAMP;
+  return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(",")})`;
+}
 
 function renderHistory() {
-  const mayor = HRES.data.mayor;
-  const years = Object.keys(mayor).map(Number).sort((a, b) => b - a);   // 2025 … 2017
-  const cyc = years.map(y => {
-    const e = mayor[y], t = mayorTotals(e);
-    return t ? { y, ...t, m: marginPts(t.d, t.r), un: false, d_name: e.d, r_name: e.r } : { y, un: true, d_name: e.d };
-  });
-  const cur = cyc[0];                                   // 2025 result
-  const curTot = cur.d + cur.r, curDp = Math.round(1000 * cur.d / curTot) / 10, curRp = Math.round(1000 * cur.r / curTot) / 10;
-  const contested = cyc.filter(c => !c.un);
-  const maxM = Math.max(...contested.map(c => c.m));
-
-  // Precinct Democratic margins — latest contested Mayor cycle (2025).
-  const precM = [basePrecinct, turnoutPrecinct, persuasionPrecinct]
-    .map(p => ({ p, r: roleOf(p), m: mayor25Margin(p.id) }))
-    .sort((a, b) => b.m - a.m);
-  const maxPM = Math.max(...precM.map(x => x.m));
-
-  // Turnout by cycle (real ballots on current rolls).
   const turnout = [["2018", T.hist.y2018], ["2022", T.hist.y2022], ["2024", T.hist.y2024]];
   const maxTO = maxOf(turnout.map(t => t[1]));
 
@@ -552,7 +702,7 @@ function renderHistory() {
     <div>
       <div class="eyebrow">History</div>
       <h1>Electoral Record</h1>
-      <div class="sub">East Hartford Mayor &amp; HD-10 margins · 2017–2025</div>
+      <div class="sub">Real precinct returns by office &amp; year · voting districts 004 · 005 · 006</div>
     </div>
     <div class="right">
       <div class="live-row"><span class="live-dot"></span> Certified Results</div>
@@ -560,74 +710,99 @@ function renderHistory() {
     </div>
   </header>
 
-  <!-- Mayor 2025 result -->
-  <div class="chart-tray" style="margin-bottom:20px;">
-    <div class="chart-tray-head"><div class="chart-tray-hd">Mayor · East Hartford · ${cur.y}</div><div class="chart-tray-meta">Certified · ${fmt(curTot)} votes</div></div>
-    <div style="display:flex;align-items:center;gap:24px;margin-top:8px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:280px;">
-        <div class="party-bar-track" style="height:30px;">
-          <div class="pb-d" style="width:${curDp}%;">${cur.d_name.toUpperCase()} ${curDp}%</div>
-          <div class="pb-r" style="width:${curRp}%;">${cur.r_name.toUpperCase()} ${curRp}%</div>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-top:10px;">
-          <div><div style="font-family:var(--ff-display);font-weight:700;font-size:15px;color:var(--dem-lt);letter-spacing:.5px;">${cur.d_name} (D)</div><div style="font-size:11px;color:var(--fg-muted);margin-top:2px;font-variant-numeric:tabular-nums;">${fmt(cur.d)} votes</div></div>
-          <div style="text-align:right;"><div style="font-family:var(--ff-display);font-weight:700;font-size:15px;color:var(--rep-lt);letter-spacing:.5px;">${cur.r_name} (R)</div><div style="font-size:11px;color:var(--fg-muted);margin-top:2px;font-variant-numeric:tabular-nums;">${fmt(cur.r)} votes</div></div>
-        </div>
-      </div>
-      <div class="margin-pill d" style="font-size:14px;padding:8px 16px;flex-shrink:0;">▲ D LEADS BY ${fmt(cur.d - cur.r)} · ${cur.m} pts</div>
-    </div>
+  <div class="map-controls" style="position:static;margin-bottom:10px" id="hist-office"></div>
+  <div class="map-controls" style="position:static;margin-bottom:16px" id="hist-year"></div>
+
+  <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:start;">
+    <div class="mapcard"><div class="lmap" id="hist-map"></div><div class="maplegend" id="hist-legend"></div></div>
+    <div class="chart-tray" id="hist-result"></div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:20px;align-items:start;">
-    <!-- Mayoral margin by cycle -->
-    <div class="chart-tray">
-      <div class="chart-tray-head"><div class="chart-tray-hd">Mayoral Margin by Cycle</div><div class="chart-tray-meta">Democratic advantage</div></div>
-      <div style="margin-top:6px;">
-        <div style="display:grid;grid-template-columns:64px 1fr 78px;gap:12px;padding:8px 10px;font-family:var(--ff-display);font-weight:600;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--fg-muted);border-bottom:1px solid var(--border);">
-          <div>Cycle</div><div>Democratic Margin</div><div style="text-align:right;">Result</div>
-        </div>
-        ${cyc.map((c, i) => `
-          <div class="cyc-row" style="display:grid;grid-template-columns:64px 1fr 78px;gap:12px;padding:11px 10px;align-items:center;border-bottom:1px solid var(--hairline);">
-            <div style="font-family:var(--ff-display);font-weight:700;font-size:15px;${i === 0 ? "color:var(--gold-lt);" : ""}">${c.y}</div>
-            ${c.un
-      ? `<div style="height:9px;border-radius:4px;background:repeating-linear-gradient(45deg,rgba(148,163,184,.16),rgba(148,163,184,.16) 5px,transparent 5px,transparent 10px);"></div>
-             <div style="text-align:right;font-family:var(--ff-display);font-weight:600;font-size:11px;color:var(--fg-muted);letter-spacing:1px;">UNOPP</div>`
-      : `<div class="demo-track" style="height:9px;"><div class="demo-fill" style="width:${Math.round(100 * c.m / (maxM + 6))}%;background:var(--dem);"></div></div>
-             <div style="text-align:right;font-family:var(--ff-display);font-weight:700;font-size:15px;color:var(--dem-lt);">D+${c.m}</div>`}
-          </div>`).join("")}
-      </div>
-      <div style="font-size:10px;color:var(--fg-muted);margin-top:12px;line-height:1.5;">Source: ${HRES.source}</div>
-    </div>
+  <div class="sec-head"><h2 id="hist-sec-h"></h2><div class="note" id="hist-sec-n"></div></div>
+  <div class="table-wrap"><table class="tbl" id="hist-table"></table></div>
 
-    <!-- Precinct margins + turnout -->
-    <div style="display:flex;flex-direction:column;gap:16px;">
-      <div class="chart-tray">
-        <div class="chart-tray-head"><div class="chart-tray-hd">Precinct Democratic Margins</div><div class="chart-tray-meta">'${String(cur.y).slice(2)} Mayor</div></div>
-        <div style="display:flex;flex-direction:column;gap:12px;margin-top:6px;">
-          ${precM.map(({ p, r, m }) => `
-            <div>
-              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px;"><span style="font-family:var(--ff-display);font-weight:600;letter-spacing:1px;text-transform:uppercase;">${p.name}</span><span style="color:${r.colorLt};font-family:var(--ff-display);font-weight:700;">D+${m}</span></div>
-              <div class="demo-track" style="height:8px;"><div class="demo-fill" style="width:${Math.round(100 * m / maxPM)}%;background:var(--dem);"></div></div>
-              <div style="height:3px;margin-top:3px;background:${r.color};border-radius:2px;width:${Math.round(100 * m / maxPM)}%;"></div>
-            </div>`).join("")}
-        </div>
-      </div>
-
-      <div class="chart-tray">
-        <div class="chart-tray-head"><div class="chart-tray-hd">General Turnout by Cycle</div><div class="chart-tray-meta">Ballots cast</div></div>
-        <div style="display:flex;align-items:flex-end;gap:20px;height:120px;padding:14px 8px 0;">
-          ${turnout.map(([yr, n], i) => {
-      const last = i === turnout.length - 1;
-      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
-              <div style="font-family:var(--ff-display);font-weight:700;font-size:14px;color:${last ? "var(--gold-lt)" : "var(--fg)"};margin-bottom:6px;font-variant-numeric:tabular-nums;">${fmt(n)}</div>
-              <div style="width:100%;max-width:48px;height:${Math.round(96 * n / maxTO)}px;border-radius:3px 3px 0 0;background:${last ? "var(--gold)" : "var(--teal)"};opacity:${last ? "1" : ".85"};"></div>
-              <div style="font-size:10px;color:${last ? "var(--fg)" : "var(--fg-muted)"};margin-top:8px;letter-spacing:1px;${last ? "font-weight:600;" : ""}">${yr}</div>
-            </div>`;
-    }).join("")}
-        </div>
-      </div>
+  <div class="sec-head"><h2>General Turnout by Cycle</h2><div class="note">ballots on current rolls</div></div>
+  <div class="chart-tray">
+    <div class="mini-bars" style="height:140px;">
+      ${turnout.map(([yr, n], i) => {
+    const last = i === 2;
+    return `<div class="col"><div class="n" style="font-size:14px;color:${last ? "var(--gold-lt)" : "var(--fg)"}">${fmt(n)}</div>
+        <div class="bar" style="max-width:60px;height:${Math.round(112 * n / maxTO)}px;background:${last ? "var(--gold)" : "var(--teal)"};opacity:${last ? 1 : .85};"></div>
+        <div class="yr" style="${last ? "color:var(--fg);font-weight:600;" : ""}">${yr}</div></div>`;
+  }).join("")}
     </div>
   </div>`;
+  renderHistControls(); renderHistResult(); renderHistTable();
+}
+function renderHistControls() {
+  $("#hist-office").innerHTML = HRES.order.map(o => `<button class="seg-btn ${o === histOffice ? "on" : ""}" data-ho="${o}" type="button">${HRES.meta[o].label}</button>`).join("");
+  $("#hist-year").innerHTML = histYears(histOffice).map(y => `<button class="seg-btn ${y === histYear ? "on" : ""}" data-hy="${y}" type="button">${y}</button>`).join("");
+  $$("[data-ho]").forEach(b => b.addEventListener("click", () => { histOffice = b.dataset.ho; histYear = histYears(histOffice)[0]; refreshHistory(); }));
+  $$("[data-hy]").forEach(b => b.addEventListener("click", () => { histYear = +b.dataset.hy; refreshHistory(); }));
+}
+function refreshHistory() { renderHistControls(); paintHistMap(); renderHistResult(); renderHistTable(); }
+function buildHistMap() { histMap = baseMap("hist-map"); paintHistMap(); }
+function paintHistMap() {
+  if (!histMap) return;
+  if (histLayer) histMap.removeLayer(histLayer);
+  const e = histEntry();
+  histLayer = L.geoJSON(D.geo, {
+    style: f => {
+      const cell = hasBP(e) ? e.bp[f.properties.id] : null;
+      return featureStyle(cell ? marginColor(marginPts(cell[0], cell[1])) : e.un ? "#2E4A78" : "#3A4658", false);
+    },
+    onEachFeature: (f, layer) => {
+      const p = pById(f.properties.id), cell = hasBP(e) ? e.bp[f.properties.id] : null;
+      const lbl = cell ? `${e.d.split(" ").pop()} +${Math.abs(marginPts(cell[0], cell[1]))}` : e.un ? "Unopposed" : "pending";
+      layer.bindTooltip(`<span class="plabel">${p.name}<br>${lbl}</span>`, { permanent: true, direction: "center", className: "plabel-wrap" });
+    },
+  }).addTo(histMap);
+  legend($("#hist-legend"), `${HRES.meta[histOffice].label} ${histYear} · D margin`,
+    hasBP(e) ? [[marginColor(10), "Closer · D+10"], [marginColor(33), "Lean · D+33"], [marginColor(55), "Safer · D+55"]]
+      : e.un ? [["#2E4A78", "Unopposed (D)"]] : [["#33415A", "Result pending"]]);
+}
+function renderHistResult() {
+  const e = histEntry(), meta = HRES.meta[histOffice], tot = distTotals(e);
+  const r1 = x => Math.round(x * 10) / 10;
+  let body;
+  if (tot) {
+    const tp = tot.d + tot.r, dp = r1(100 * tot.d / tp), rp = r1(100 * tot.r / tp), m = marginPts(tot.d, tot.r);
+    const prow = pid => {
+      const c = e.bp[pid]; if (!c) return "";
+      const pm = marginPts(c[0], c[1]), rl = roleOf(pById(pid));
+      return `<div class="drow"><span class="l">${pById(pid).name}</span><span class="v" style="color:${rl.colorLt}">${pm >= 0 ? "D" : "R"}+${Math.abs(pm)}<span style="color:var(--fg-muted);font-size:12px;font-weight:400"> · ${fmt(c[0])}–${fmt(c[1])}</span></span></div>`;
+    };
+    body = `<div class="party-bar-track" style="height:30px;">
+        <div class="pb-d" style="width:${dp}%;">${e.d.toUpperCase()} ${dp}%</div><div class="pb-r" style="width:${rp}%;">${e.r.toUpperCase()} ${rp}%</div></div>
+      <div class="rows" style="margin-top:12px">
+        ${drow(`${e.d} (D)`, `${dp}% · ${fmt(tot.d)}`)}${drow(`${e.r} (R)`, `${rp}% · ${fmt(tot.r)}`)}
+      </div>
+      <div class="stat-lbl" style="margin:16px 0 4px">By precinct</div>
+      <div class="rows">${["004", "005", "006"].map(prow).join("")}</div>`;
+  } else if (e.un) {
+    body = `<div class="callout" style="margin-top:8px;background:rgba(37,99,235,.1);border-color:rgba(96,165,250,.3)"><b style="color:${C.demLt}">${e.d} (D) ran unopposed.</b> No Republican on the ballot — the seat was uncontested.</div>`;
+  } else {
+    body = `<div class="rows" style="margin-top:8px">${drow("Winner", `${e.d} (D)`)}${e.r ? drow("Opponent", `${e.r} (R)`) : ""}</div>`;
+  }
+  $("#hist-result").innerHTML = `<div class="chart-tray-head"><div class="chart-tray-hd">${meta.label} · ${histYear}</div>
+      <span class="margin-pill ${tot ? (marginPts(tot.d, tot.r) >= 0 ? "d" : "r") : "tie"}">${tot ? (marginPts(tot.d, tot.r) >= 0 ? "D" : "R") + "+" + Math.abs(marginPts(tot.d, tot.r)) : e.un ? "UNCONTESTED" : "PENDING"}</span></div>
+    <div style="font-size:11px;color:var(--fg-muted);margin:-2px 0 10px;">${meta.sub}</div>
+    ${body}
+    <div style="font-size:10px;color:var(--fg-muted);margin-top:14px;line-height:1.5;">Source: ${HRES.source}</div>`;
+}
+function renderHistTable() {
+  const sh = $("#hist-sec-h"), sn = $("#hist-sec-n");
+  if (sh) sh.textContent = `${HRES.meta[histOffice].label} — All Cycles`;
+  if (sn) sn.textContent = HRES.meta[histOffice].sub;
+  const rows = histYears(histOffice).map(y => {
+    const e = HRES.data[histOffice][y], tot = distTotals(e);
+    if (tot) {
+      const tp = tot.d + tot.r, dp = Math.round(1000 * tot.d / tp) / 10, rp = Math.round(1000 * tot.r / tp) / 10, m = marginPts(tot.d, tot.r);
+      return `<tr><td><b>${y}</b></td><td>${e.d} (D) · ${e.r} (R)</td><td><b>${dp}%</b> – ${rp}%</td><td><span style="color:${C.demLt}">D+${m}</span></td></tr>`;
+    }
+    return `<tr><td><b>${y}</b></td><td>${e.d} (D)${e.r ? " · " + e.r + " (R)" : ""}</td><td colspan="2"><span style="color:var(--fg-muted)">${e.un ? "Unopposed" : (e.note || "pending")}</span></td></tr>`;
+  }).join("");
+  $("#hist-table").innerHTML = `<thead><tr><th>Year</th><th>Candidates</th><th>Result (HD-10)</th><th>Margin</th></tr></thead><tbody>${rows}</tbody>`;
 }
 
 /* ════════════════════ BOOT ════════════════════ */
@@ -641,6 +816,7 @@ function showTab(id) {
   if (id === "precincts") { if (!precinctMap) buildPrecinctMap(); refit(precinctMap); }
   if (id === "voters") { if (!votersMap) buildVotersMap(); refit(votersMap); }
   if (id === "signals") { if (!signalMap) buildSignalMap(); refit(signalMap); }
+  if (id === "history") { if (!histMap) buildHistMap(); refit(histMap); }
 }
 function gotoTab(id) { showTab(id); }
 function wireTabs() {
