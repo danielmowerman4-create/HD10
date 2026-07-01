@@ -24,6 +24,11 @@ const C = {
   dem: "#2563EB", demLt: "#60A5FA",
   muted: "#6B87A3",
 };
+// Single-hue teal ramp (light → deep) for ordered categories — keeps charts
+// consistent instead of rainbow. Generic data viz uses teal; gold is emphasis
+// only; party/role colors stay semantic.
+const RAMP_T = ["#7FD6E2", "#33B4C6", "#1E97A8", "#136F7D"];
+const rampN = (i, n) => RAMP_T[Math.min(RAMP_T.length - 1, Math.round(i * (RAMP_T.length - 1) / Math.max(1, n - 1)))];
 
 /* ── Roles (data-derived) ───────────────────────────────── */
 const byR = [...P].sort((a, b) => b.pct.R - a.pct.R);
@@ -250,29 +255,21 @@ function renderPrecincts() {
     "Persuasion Priority": "Largest persuadable NPA bloc — persuade.",
   };
   const rows = order.map((p, i) => {
-    const r = roleOf(p), tp = tgPrec(p.id), n = tp ? tp.target : 0, m = mayor25Margin(p.id), sel = p.id === selectedPrecinct;
+    const r = roleOf(p), tp = tgPrec(p.id), n = tp ? tp.target : 0, sel = p.id === selectedPrecinct;
     return `
-    <div class="rank-row${sel ? " sel" : ""}" data-psel="${p.id}" style="border:1px solid ${sel ? r.color : "var(--border)"};border-left:3px solid ${r.color};border-radius:8px;background:rgba(15,26,44,.5);padding:18px;">
-      <div style="display:flex;align-items:center;gap:16px;">
-        <div style="font-family:var(--ff-display);font-weight:900;font-size:26px;color:${r.colorLt};width:26px;text-align:center;flex-shrink:0;">${i + 1}</div>
+    <div class="rank-row${sel ? " sel" : ""}" data-psel="${p.id}" style="border:1px solid ${sel ? r.color : "var(--border)"};border-left:3px solid ${r.color};border-radius:8px;background:rgba(15,26,44,.5);padding:12px 14px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-family:var(--ff-display);font-weight:900;font-size:20px;color:${r.colorLt};width:16px;text-align:center;flex-shrink:0;">${i + 1}</div>
         <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <span style="font-family:var(--ff-display);font-weight:800;font-size:19px;letter-spacing:.5px;text-transform:uppercase;">${p.name}</span>
-            <span style="font-size:10px;color:var(--fg-muted);letter-spacing:1px;">${p.id}</span>
-            <span style="padding:2px 8px;border-radius:2px;background:${r.tint};border:1px solid ${r.bd};color:${r.colorLt};font-family:var(--ff-display);font-weight:600;font-size:9px;letter-spacing:2px;text-transform:uppercase;">${r.short}</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-family:var(--ff-display);font-weight:800;font-size:16px;letter-spacing:.5px;text-transform:uppercase;">${p.name}</span>
+            <span style="padding:2px 7px;border-radius:2px;background:${r.tint};border:1px solid ${r.bd};color:${r.colorLt};font-family:var(--ff-display);font-weight:600;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;">${r.short}</span>
           </div>
-          <div style="font-size:12px;color:var(--fg-dim);margin-top:5px;">${desc[r.key]}</div>
+          <div class="demo-track" style="height:5px;margin-top:8px;"><div class="demo-fill" style="width:${Math.round(100 * n / maxT)}%;background:${r.color};"></div></div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-family:var(--ff-display);font-weight:700;font-size:24px;color:${r.colorLt};font-variant-numeric:tabular-nums;line-height:1;">${fmt(n)}</div>
-          <div class="stat-lbl" style="margin:5px 0 0;">Targets</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:16px;margin-top:14px;">
-        <div class="demo-track" style="flex:1;height:6px;"><div class="demo-fill" style="width:${Math.round(100 * n / maxT)}%;background:${r.color};"></div></div>
-        <div style="display:flex;gap:18px;flex-shrink:0;">
-          <div style="text-align:right;"><span class="stat-lbl" style="display:inline;">Reg</span> <span style="font-family:var(--ff-display);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;">${fmt(p.active)}</span></div>
-          <div style="text-align:right;"><span class="stat-lbl" style="display:inline;">'25 Margin</span> <span style="font-family:var(--ff-display);font-weight:700;font-size:14px;color:var(--dem-lt);">D+${m}</span></div>
+          <div style="font-family:var(--ff-display);font-weight:700;font-size:20px;color:${r.colorLt};font-variant-numeric:tabular-nums;line-height:1;">${fmt(n)}</div>
+          <div class="stat-lbl" style="margin:3px 0 0;font-size:8px;">Targets</div>
         </div>
       </div>
     </div>`;
@@ -283,7 +280,7 @@ function renderPrecincts() {
     <div>
       <div class="eyebrow">Precincts</div>
       <h1>Field Ranking</h1>
-      <div class="sub">Where to deploy — ranked by targets · click a precinct for its full electorate profile</div>
+      <div class="sub">Where to deploy — click a precinct on the map or list for its full electorate profile</div>
     </div>
     <div class="right">
       <div class="live-row"><span class="live-dot"></span> 3 Precincts</div>
@@ -291,28 +288,23 @@ function renderPrecincts() {
     </div>
   </header>
 
-  <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:20px;align-items:start;">
-    <div style="display:flex;flex-direction:column;gap:12px;">${rows}</div>
-    <div style="display:flex;flex-direction:column;gap:14px;">
-      <div class="chart-tray" style="padding:0;overflow:hidden;">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:14px 16px 10px;">
-          <div class="chart-tray-hd">Precinct Map</div><div class="chart-tray-meta">Click to inspect</div>
-        </div>
-        <div style="padding:0 14px 14px;position:relative;">
-          <div class="lmap" id="precinct-map" style="height:290px;min-height:0;max-height:none;"></div>
-          <div class="maplegend" id="precinct-legend" style="left:26px;bottom:26px;"></div>
-        </div>
-      </div>
+  <div class="map-grid">
+    <div class="mapcard"><div class="lmap" id="precinct-map"></div><div class="maplegend" id="precinct-legend"></div></div>
+    <aside class="side">
       <div class="chart-tray">
         <div class="chart-tray-head"><div class="chart-tray-hd">District Roll-Up</div></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-radius:6px;overflow:hidden;margin-top:6px;">
-          <div style="background:var(--navy-card);padding:12px 14px;"><div class="stat-lbl">Total Reg</div><div class="stat-val" style="font-size:20px;">${fmt(T.active)}</div></div>
-          <div style="background:var(--navy-card);padding:12px 14px;"><div class="stat-lbl">Targets</div><div class="stat-val teal" style="font-size:20px;">${fmt(OUR_UNIVERSE)}</div></div>
-          <div style="background:var(--navy-card);padding:12px 14px;"><div class="stat-lbl">Turnout Univ.</div><div class="stat-val gold" style="font-size:20px;">${fmt(TURNOUT_UNIVERSE)}</div></div>
-          <div style="background:var(--navy-card);padding:12px 14px;"><div class="stat-lbl">To Win</div><div class="stat-val" style="font-size:20px;">${fmt(WIN)}</div></div>
+          <div style="background:var(--navy-card);padding:14px;"><div class="stat-lbl">Total Reg</div><div class="stat-val" style="font-size:22px;">${fmt(T.active)}</div></div>
+          <div style="background:var(--navy-card);padding:14px;"><div class="stat-lbl">Targets</div><div class="stat-val teal" style="font-size:22px;">${fmt(OUR_UNIVERSE)}</div></div>
+          <div style="background:var(--navy-card);padding:14px;"><div class="stat-lbl">Turnout Univ.</div><div class="stat-val gold" style="font-size:22px;">${fmt(TURNOUT_UNIVERSE)}</div></div>
+          <div style="background:var(--navy-card);padding:14px;"><div class="stat-lbl">To Win</div><div class="stat-val" style="font-size:22px;">${fmt(WIN)}</div></div>
         </div>
       </div>
-    </div>
+      <div class="chart-tray" style="flex:1;">
+        <div class="chart-tray-head"><div class="chart-tray-hd">Field Ranking</div><div class="chart-tray-meta">By targets</div></div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px;">${rows}</div>
+      </div>
+    </aside>
   </div>
 
   <div class="sec-head"><h2>Precinct Profile</h2><div class="note" id="precinct-profile-name"></div></div>
@@ -353,19 +345,19 @@ function renderPrecinctDetail() {
   const brOrder = [["young", "18–34"], ["parent", "35–54"], ["mid", "55–64"], ["senior", "65+"]];
   const brTot = brOrder.reduce((s, [k]) => s + p.br[k].n, 0);
   const ageRows = brOrder.map(([k, lbl], i) =>
-    dRow(lbl, 100 * p.br[k].n / brTot, [C.npa, C.teal, C.gold, C.demLt][i], `${Math.round(100 * p.br[k].n / brTot)}%`, 56)).join("");
+    dRow(lbl, 100 * p.br[k].n / brTot, RAMP_T[i], `${Math.round(100 * p.br[k].n / brTot)}%`, 56)).join("");
 
-  // Vote propensity (real tiers)
+  // Vote propensity (real tiers) — prime deepest, unlikely lightest
   const tOrder = [["prime", "Prime · 4/4"], ["likely", "Likely · 3/4"], ["dropoff", "Drop-off"], ["unlikely", "Unlikely"]];
   const tTot = tOrder.reduce((s, [k]) => s + p.tiers[k].n, 0);
   const propRows = tOrder.map(([k, lbl], i) =>
-    dRow(lbl, 100 * p.tiers[k].n / tTot, [C.tealLt, C.gold, C.goldLt, C.muted][i], `${Math.round(100 * p.tiers[k].n / tTot)}%`, 96)).join("");
+    dRow(lbl, 100 * p.tiers[k].n / tTot, RAMP_T[3 - i], `${Math.round(100 * p.tiers[k].n / tTot)}%`, 96)).join("");
 
   // How they vote (method — % of 2024 voters)
   const methodRows = [
-    dRow("Election Day", pval(p.id, "eday"), C.teal, `${pval(p.id, "eday")}%`, 108),
-    dRow("Early in-person", pval(p.id, "early"), C.gold, `${pval(p.id, "early")}%`, 108),
-    dRow("Absentee / mail", pval(p.id, "vbm"), C.npa, `${pval(p.id, "vbm")}%`, 108),
+    dRow("Election Day", pval(p.id, "eday"), RAMP_T[3], `${pval(p.id, "eday")}%`, 108),
+    dRow("Early in-person", pval(p.id, "early"), RAMP_T[2], `${pval(p.id, "early")}%`, 108),
+    dRow("Absentee / mail", pval(p.id, "vbm"), RAMP_T[1], `${pval(p.id, "vbm")}%`, 108),
   ].join("");
 
   // Turnout by cycle
@@ -397,10 +389,10 @@ function renderPrecinctDetail() {
       ${trayBars("How They Vote", "Of '24 voters", methodRows)}
       <div class="chart-tray"><div class="chart-tray-head"><div class="chart-tray-hd">Turnout by Cycle</div><div class="chart-tray-meta">Ballots</div></div><div class="mini-bars">${toBars}</div></div>
       ${trayBars("Signals", "Share of active", [
-        dRow("Unaffiliated", pval(p.id, "unaff"), C.npa, `${pval(p.id, "unaff")}%`, 108),
-        dRow("Midterm drop-off", pval(p.id, "dropoff"), C.gold, `${pval(p.id, "dropoff")}%`, 108),
+        dRow("Unaffiliated", pval(p.id, "unaff"), C.tealLt, `${pval(p.id, "unaff")}%`, 108),
+        dRow("Midterm drop-off", pval(p.id, "dropoff"), C.tealLt, `${pval(p.id, "dropoff")}%`, 108),
         dRow("New movers", pval(p.id, "newmover"), C.tealLt, `${pval(p.id, "newmover")}%`, 108),
-        dRow("Single-voter homes", pval(p.id, "solo"), C.demLt, `${pval(p.id, "solo")}%`, 108),
+        dRow("Single-voter homes", pval(p.id, "solo"), C.tealLt, `${pval(p.id, "solo")}%`, 108),
       ].join(""))}
     </div>`;
 }
@@ -434,30 +426,31 @@ function renderVoters() {
   // Real, mutually-exclusive registration split of the target universe (no D targets).
   const segCards = [
     { label: "Persuadable Unaffiliated", sub: "Unaffiliated targets — persuade & turn out", n: TG.party.U, pct: pr.U, color: C.npa, colorLt: C.npaLt, tintbg: "rgba(124,58,237,.06)" },
-    { label: "Republican Base", sub: "Registered Republicans — confirm & bank", n: TG.party.R, pct: pr.R, color: C.teal, colorLt: C.tealLt, tintbg: "rgba(26,139,154,.06)" },
+    { label: "Republican Base", sub: "Registered Republicans — confirm & bank", n: TG.party.R, pct: pr.R, color: C.rep, colorLt: C.repLt, tintbg: "rgba(220,38,38,.06)" },
   ];
 
-  // Real vote-propensity tiers (sum to the universe).
+  // Real vote-propensity tiers (sum to the universe) — single teal ramp.
   const tiers = [
-    ["Reliable · 3–4 of 4", ut.locked.n, ut.locked.pct, C.teal],
-    ["Likely · 2 of 4", ut.mid.n, ut.mid.pct, C.gold],
-    ["New movers", ut.low.n, ut.low.pct, C.npa],
+    ["Reliable · 3–4 of 4", ut.locked.n, ut.locked.pct, RAMP_T[3]],
+    ["Likely · 2 of 4", ut.mid.n, ut.mid.pct, RAMP_T[2]],
+    ["New movers", ut.low.n, ut.low.pct, RAMP_T[1]],
   ];
 
-  // Real overlapping messaging hooks.
+  // Real overlapping messaging hooks — flat teal (label carries the meaning).
   const hooks = Object.entries(TG.segments).sort((a, b) => b[1].n - a[1].n)
-    .map(([k, s]) => [s.label, s.n, s.pct_of_target, k === "seg_R" ? C.rep : C.npa]);
+    .map(([k, s]) => [s.label, s.n, s.pct_of_target, C.tealLt]);
 
   // Real target density by precinct (role-colored).
   const precs = Object.entries(TG.precinct).map(([id, v]) => ({ id, ...v, role: roleOf(pById(id)) }))
     .sort((a, b) => b.target - a.target);
+  const chips = precs.map(p => `<button class="seg-btn ${p.id === selectedVoterPrec ? "on" : ""}" data-vsel="${p.id}" type="button" style="position:static;">${p.name}</button>`).join("");
 
   $("#tab-voters").innerHTML = `
   <header class="phead">
     <div>
       <div class="eyebrow">Voters</div>
       <h1>Target Universe</h1>
-      <div class="sub">${fmt(OUR_UNIVERSE)} likely-voter targets · who to contact and why</div>
+      <div class="sub">${fmt(OUR_UNIVERSE)} likely-voter targets · click a precinct on the map for its target profile</div>
     </div>
     <div class="right">
       <div class="live-row"><span class="live-dot"></span> Modeled from SOTS File</div>
@@ -465,11 +458,22 @@ function renderVoters() {
     </div>
   </header>
 
-  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;align-items:start;">
-    <!-- LEFT -->
-    <div style="display:flex;flex-direction:column;gap:16px;">
+  <div class="map-grid">
+    <div class="mapcard"><div class="lmap" id="voters-map"></div><div class="maplegend" id="voters-legend"></div></div>
+    <aside class="side">
       <div class="chart-tray">
-        <div class="chart-tray-head"><div class="chart-tray-hd">Target Segments</div><div class="chart-tray-meta">${fmt(OUR_UNIVERSE)} total · by registration</div></div>
+        <div class="chart-tray-head"><div class="chart-tray-hd">Registration of Targets</div><div class="chart-tray-meta">No Democrats targeted</div></div>
+        <div class="party-bar-track" style="height:28px;margin-top:4px;">
+          <div class="pb-n" style="width:${pr.U}%;">NPA ${pr.U}%</div>
+          <div class="pb-r" style="width:${pr.R}%;">R ${pr.R}%</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:var(--ff-display);font-size:10px;letter-spacing:1px;text-transform:uppercase;">
+          <span style="color:var(--npa-lt);">NPA ${fmt(TG.party.U)}</span>
+          <span style="color:var(--rep-lt);">R ${fmt(TG.party.R)}</span>
+        </div>
+      </div>
+      <div class="chart-tray" style="flex:1;">
+        <div class="chart-tray-head"><div class="chart-tray-hd">Target Segments</div><div class="chart-tray-meta">${fmt(OUR_UNIVERSE)} total</div></div>
         <div style="display:flex;flex-direction:column;gap:11px;margin-top:6px;">
           ${segCards.map(s => `
             <div style="border:1px solid var(--border);border-left:3px solid ${s.color};border-radius:6px;background:${s.tintbg};padding:13px 15px;">
@@ -481,69 +485,48 @@ function renderVoters() {
             </div>`).join("")}
         </div>
       </div>
+    </aside>
+  </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        <div class="chart-tray">
-          <div class="chart-tray-head"><div class="chart-tray-hd">Vote Propensity</div><div class="chart-tray-meta">Of targets</div></div>
-          <div class="demo-section" style="padding-top:4px;">
-            ${tiers.map(([l, n, p, c]) => `<div class="demo-row"><div class="demo-lbl" style="width:96px;">${l}</div><div class="demo-track"><div class="demo-fill" style="width:${p}%;background:${c};"></div></div><div class="demo-pct">${p}%</div></div>`).join("")}
-            <div style="font-size:10px;color:var(--fg-muted);margin-top:10px;line-height:1.5;">Universe excludes 0–1-of-4 voters — targets already turn out.</div>
-          </div>
-        </div>
-        <div class="chart-tray">
-          <div class="chart-tray-head"><div class="chart-tray-hd">Who They Are</div><div class="chart-tray-meta">Gender · age</div></div>
-          <div class="demo-section" style="padding-top:4px;">
-            <div class="demo-row"><div class="demo-lbl">Women</div><div class="demo-track"><div class="demo-fill" style="width:${womenPct}%;background:var(--demo-purple);"></div></div><div class="demo-pct">${womenPct}%</div></div>
-            <div class="demo-row"><div class="demo-lbl">Men</div><div class="demo-track"><div class="demo-fill" style="width:${menPct}%;background:var(--demo-green);"></div></div><div class="demo-pct">${menPct}%</div></div>
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:11px;border-top:1px solid var(--hairline);">
-              <div class="stat-lbl" style="margin:0;">Average age</div><div class="stat-val" style="font-size:22px;">${TG.avg_age}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="chart-tray">
-        <div class="chart-tray-head"><div class="chart-tray-hd">Messaging Hooks</div><div class="chart-tray-meta">Overlapping · a voter can fit several</div></div>
-        <div class="demo-section" style="padding-top:4px;">
-          ${hooks.map(([l, n, p, c]) => `<div class="demo-row"><div class="demo-lbl" style="width:auto;flex:1;font-weight:500;font-size:11.5px;color:var(--fg-dim);">${l}</div><div class="demo-track" style="max-width:120px;"><div class="demo-fill" style="width:${p}%;background:${c};"></div></div><div class="demo-pct" style="width:64px;">${fmt(n)}·${p}%</div></div>`).join("")}
-        </div>
+  <div class="sec-head"><h2>The Universe</h2><div class="note">${fmt(OUR_UNIVERSE)} targets · propensity, demographics, hooks</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="chart-tray">
+      <div class="chart-tray-head"><div class="chart-tray-hd">Vote Propensity</div><div class="chart-tray-meta">Of targets</div></div>
+      <div class="demo-section" style="padding-top:4px;">
+        ${tiers.map(([l, n, p, c]) => `<div class="demo-row"><div class="demo-lbl" style="width:110px;">${l}</div><div class="demo-track"><div class="demo-fill" style="width:${p}%;background:${c};"></div></div><div class="demo-pct">${p}%</div></div>`).join("")}
+        <div style="font-size:10px;color:var(--fg-muted);margin-top:10px;line-height:1.5;">Universe excludes 0–1-of-4 voters — targets already turn out.</div>
       </div>
     </div>
-
-    <!-- RIGHT -->
-    <div style="display:flex;flex-direction:column;gap:16px;">
-      <div class="chart-tray" style="padding:0;overflow:hidden;">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:14px 16px 10px;">
-          <div class="chart-tray-hd">Target Density</div><div class="chart-tray-meta">By precinct</div>
-        </div>
-        <div style="padding:0 14px 14px;">
-          <div class="lmap" id="voters-map" style="height:220px;min-height:0;max-height:none;"></div>
-          <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;">
-            ${precs.map(p => `<div class="linklike" data-vsel="${p.id}" style="display:flex;align-items:center;gap:9px;font-size:11px;color:var(--fg);text-decoration:none;"><span style="width:20px;height:9px;border-radius:2px;background:${p.role.color};"></span> ${p.name} · ${fmt(p.target)} targets</div>`).join("")}
-          </div>
-        </div>
-      </div>
-
-      <div class="chart-tray">
-        <div class="chart-tray-head"><div class="chart-tray-hd">Registration of Targets</div><div class="chart-tray-meta">No Democrats targeted</div></div>
-        <div class="party-bar-track" style="margin-top:4px;">
-          <div class="pb-n" style="width:${pr.U}%;">NPA ${pr.U}%</div>
-          <div class="pb-r" style="width:${pr.R}%;">R ${pr.R}%</div>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:var(--ff-display);font-size:10px;letter-spacing:1px;text-transform:uppercase;">
-          <span style="color:var(--npa-lt);">NPA ${fmt(TG.party.U)}</span>
-          <span style="color:var(--rep-lt);">R ${fmt(TG.party.R)}</span>
+    <div class="chart-tray">
+      <div class="chart-tray-head"><div class="chart-tray-hd">Who They Are</div><div class="chart-tray-meta">Gender · age</div></div>
+      <div class="demo-section" style="padding-top:4px;">
+        <div class="demo-row"><div class="demo-lbl">Women</div><div class="demo-track"><div class="demo-fill" style="width:${womenPct}%;background:${C.tealLt};"></div></div><div class="demo-pct">${womenPct}%</div></div>
+        <div class="demo-row"><div class="demo-lbl">Men</div><div class="demo-track"><div class="demo-fill" style="width:${menPct}%;background:#17707C;"></div></div><div class="demo-pct">${menPct}%</div></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:11px;border-top:1px solid var(--hairline);">
+          <div class="stat-lbl" style="margin:0;">Average age</div><div class="stat-val" style="font-size:22px;">${TG.avg_age}</div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="sec-head"><h2>Targets by Precinct</h2><div class="note" id="voter-detail-name"></div></div>
+  <div class="chart-tray" style="margin-top:16px;">
+    <div class="chart-tray-head"><div class="chart-tray-hd">Messaging Hooks</div><div class="chart-tray-meta">Overlapping · a voter can fit several</div></div>
+    <div class="demo-section" style="padding-top:4px;">
+      ${hooks.map(([l, n, p, c]) => `<div class="demo-row"><div class="demo-lbl" style="width:auto;flex:1;font-weight:500;font-size:11.5px;color:var(--fg-dim);">${l}</div><div class="demo-track" style="max-width:180px;"><div class="demo-fill" style="width:${p}%;background:${c};"></div></div><div class="demo-pct" style="width:74px;">${fmt(n)}·${p}%</div></div>`).join("")}
+    </div>
+  </div>
+
+  <div class="sec-head"><h2>Targets by Precinct</h2>
+    <div class="map-controls" style="position:static;">${chips}</div></div>
   <div id="voter-detail"></div>`;
   $$("[data-vsel]").forEach(el => el.addEventListener("click", () => selectVoterPrec(el.dataset.vsel)));
   renderVoterDetail();
 }
-function selectVoterPrec(id) { selectedVoterPrec = id; renderVoterDetail(); paintVotersMap(); }
+function selectVoterPrec(id) {
+  selectedVoterPrec = id;
+  $$("[data-vsel]").forEach(b => b.classList.toggle("on", b.dataset.vsel === id));
+  renderVoterDetail(); paintVotersMap();
+}
 function renderVoterDetail() {
   const el = $("#voter-detail"); if (!el || !TG) return;
   const id = selectedVoterPrec, tp = TG.precinct[id], p = pById(id), r = roleOf(p);
@@ -571,12 +554,12 @@ function renderVoterDetail() {
         <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:var(--ff-display);font-size:10px;letter-spacing:1px;text-transform:uppercase;"><span style="color:var(--npa-lt);">Unaff ${fmt(tp.party.U)}</span><span style="color:var(--rep-lt);">Rep ${fmt(tp.party.R)}</span></div>
       </div>
       ${trayBars("Gender", "Of targets", [
-        dRow("Women", womenPct, C.demLt, `${womenPct}%`, 64),
-        dRow("Men", menPct, C.tealLt, `${menPct}%`, 64),
+        dRow("Women", womenPct, C.tealLt, `${womenPct}%`, 64),
+        dRow("Men", menPct, "#17707C", `${menPct}%`, 64),
       ].join(""))}
       ${trayBars("How Reliable", "Of targets", [
-        dRow("Locked-in 3–4/4", lockPct, C.tealLt, `${lockPct}%`, 108),
-        dRow("Rest of universe", restPct, C.gold, `${restPct}%`, 108),
+        dRow("Locked-in 3–4/4", lockPct, RAMP_T[3], `${lockPct}%`, 108),
+        dRow("Rest of universe", restPct, RAMP_T[1], `${restPct}%`, 108),
       ].join(""))}
       <div class="chart-tray"><div class="chart-tray-head"><div class="chart-tray-hd">Turnout Anchor</div><div class="chart-tray-meta">Targets who voted '24</div></div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-top:12px;"><div style="font-family:var(--ff-display);font-weight:700;font-size:34px;color:var(--teal-lt);font-variant-numeric:tabular-nums;">${fmt(tp.voted_2024)}</div><div class="stat-lbl" style="margin:0;">voted 2024 · ${pct(tp.voted_2024, tp.target)}% of targets</div></div>
@@ -605,6 +588,10 @@ function paintVotersMap() {
       });
     },
   }).addTo(votersMap);
+  const leg = $("#voters-legend");
+  if (leg) legend(leg, "Targets by Precinct",
+    [...P].sort((a, b) => (tgPrec(b.id)?.target || 0) - (tgPrec(a.id)?.target || 0))
+      .map(p => [roleOf(p).color, `${p.name} · ${fmt(tgPrec(p.id)?.target || 0)}`]));
 }
 
 /* ════════════════════ SIGNALS ════════════════════ */
