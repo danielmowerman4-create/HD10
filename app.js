@@ -24,10 +24,10 @@ const C = {
   dem: "#2563EB", demLt: "#60A5FA",
   muted: "#6B87A3",
 };
-// Single-hue teal ramp (light → deep) for ordered categories — keeps charts
-// consistent instead of rainbow. Generic data viz uses teal; gold is emphasis
-// only; party/role colors stay semantic.
-const RAMP_T = ["#7FD6E2", "#33B4C6", "#1E97A8", "#136F7D"];
+// Single-hue red ramp (light → deep) for ordered categories — the GOP brand
+// accent for generic data viz. Gold is the patriotic secondary/emphasis; party
+// (blue/red/purple) and role colors stay semantic.
+const RAMP_T = ["#F4B6B3", "#E67E78", "#D23B32", "#9E211A"];
 const rampN = (i, n) => RAMP_T[Math.min(RAMP_T.length - 1, Math.round(i * (RAMP_T.length - 1) / Math.max(1, n - 1)))];
 
 /* ── Roles (data-derived) ───────────────────────────────── */
@@ -38,13 +38,13 @@ const basePrecinct = byR[0];
 const persuasionPrecinct = byU[0];
 const turnoutPrecinct = byLow[0];
 
-/* Intentional accent rotation (handoff): Base=teal · Turnout=gold · Persuasion=purple.
+/* Role rotation (Republican brand): Base=red · Turnout=gold · Persuasion=purple.
    The three roles are data-derived and land on Goodwin / Silver Lane / Hockanum. */
 const ROLE = {};
 ROLE[turnoutPrecinct.id] = { key: "Turnout Priority", short: "Turnout", color: C.gold, colorLt: C.goldLt, tint: "rgba(212,160,23,.14)", bd: "rgba(212,160,23,.32)" };
 ROLE[persuasionPrecinct.id] = { key: "Persuasion Priority", short: "Persuasion", color: C.npa, colorLt: C.npaLt, tint: "rgba(124,58,237,.16)", bd: "rgba(124,58,237,.36)" };
-ROLE[basePrecinct.id] = { key: "Republican Base", short: "Base", color: C.teal, colorLt: C.tealLt, tint: "rgba(26,139,154,.14)", bd: "rgba(26,139,154,.3)" };
-P.forEach(p => { if (!ROLE[p.id]) ROLE[p.id] = { key: "Republican Base", short: "Base", color: C.teal, colorLt: C.tealLt, tint: "rgba(26,139,154,.14)", bd: "rgba(26,139,154,.3)" }; });
+ROLE[basePrecinct.id] = { key: "Republican Base", short: "Base", color: C.rep, colorLt: C.repLt, tint: "rgba(220,38,38,.15)", bd: "rgba(220,38,38,.36)" };
+P.forEach(p => { if (!ROLE[p.id]) ROLE[p.id] = { key: "Republican Base", short: "Base", color: C.rep, colorLt: C.repLt, tint: "rgba(220,38,38,.15)", bd: "rgba(220,38,38,.36)" }; });
 const roleOf = p => ROLE[p.id];
 
 function priorityScore(p) {
@@ -188,13 +188,13 @@ function renderOverview() {
     <div style="padding:30px 34px;border-left:1px solid var(--border);">
       <div class="t-eyebrow">Path to Victory</div>
       <div style="display:flex;align-items:baseline;gap:14px;margin-top:14px;">
-        <div style="font-family:var(--ff-display);font-weight:900;font-size:74px;line-height:.82;color:var(--teal-lt);font-variant-numeric:tabular-nums;">${fmt(OUR_UNIVERSE)}</div>
+        <div style="font-family:var(--ff-display);font-weight:900;font-size:74px;line-height:.82;color:var(--rep-lt);font-variant-numeric:tabular-nums;">${fmt(OUR_UNIVERSE)}</div>
         <div style="font-family:var(--ff-display);font-weight:600;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--fg-muted);line-height:1.25;">Likely-Voter<br>Targets</div>
       </div>
       <div style="font-size:13px;color:var(--fg-dim);margin-top:18px;line-height:1.5;">50% + 1 of <strong style="color:var(--fg);font-weight:600;">${fmt(TURNOUT_UNIVERSE)}</strong> projected 2026 voters is <strong style="color:var(--fg);font-weight:600;">${fmt(WIN)}</strong> to win.</div>
       <div style="margin-top:14px;">
         <div style="display:flex;height:14px;border-radius:3px;overflow:hidden;background:#0F1A2C;">
-          <div style="width:${winPct}%;background:var(--gold);"></div><div style="flex:1;background:var(--teal);"></div>
+          <div style="width:${winPct}%;background:var(--gold);"></div><div style="flex:1;background:var(--rep);"></div>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:7px;font-family:var(--ff-display);font-weight:600;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--fg-muted);">
           <span style="color:var(--gold-lt);">${fmt(WIN)} to win</span><span>${fmt(OUR_UNIVERSE)} in universe</span>
@@ -203,9 +203,9 @@ function renderOverview() {
       <div style="height:1px;background:var(--border);margin:22px 0 18px;"></div>
       <div style="display:flex;align-items:baseline;justify-content:space-between;">
         <div class="t-eyebrow" style="max-width:150px;line-height:1.3;">Cushion Above the Win Number</div>
-        <div style="font-family:var(--ff-display);font-weight:900;font-size:34px;color:var(--teal-lt);">+${fmt(CUSHION)}</div>
+        <div style="font-family:var(--ff-display);font-weight:900;font-size:34px;color:var(--rep-lt);">+${fmt(CUSHION)}</div>
       </div>
-      <div style="height:6px;border-radius:3px;background:#0F1A2C;overflow:hidden;margin-top:12px;"><div style="width:${Math.min(100, Math.round(100 * CUSHION / WIN))}%;height:100%;background:var(--teal);"></div></div>
+      <div style="height:6px;border-radius:3px;background:#0F1A2C;overflow:hidden;margin-top:12px;"><div style="width:${Math.min(100, Math.round(100 * CUSHION / WIN))}%;height:100%;background:var(--rep);"></div></div>
       <div style="font-size:11px;color:var(--fg-muted);margin-top:10px;line-height:1.5;"><strong style="color:var(--fg-dim);font-weight:600;">${fmt(CUSHION)}</strong> targets above the line — the margin for slippage if turnout softens.</div>
     </div>
   </div>
@@ -365,7 +365,7 @@ function renderPrecinctDetail() {
   const toBars = [["2018", th.y2018], ["2022", th.y2022], ["2024", th.y2024]].map(([yr, n], i) => {
     const last = i === 2;
     return `<div class="col"><div class="n" style="color:${last ? "var(--gold-lt)" : "var(--fg)"}">${fmt(n)}</div>
-      <div class="bar" style="height:${Math.round(88 * n / thMax)}px;background:${last ? "var(--gold)" : "var(--teal)"};opacity:${last ? 1 : .85};"></div>
+      <div class="bar" style="height:${Math.round(88 * n / thMax)}px;background:${last ? "var(--gold)" : "var(--rep)"};opacity:${last ? 1 : .8};"></div>
       <div class="yr" style="${last ? "color:var(--fg);font-weight:600;" : ""}">${yr}</div></div>`;
   }).join("");
 
@@ -389,10 +389,10 @@ function renderPrecinctDetail() {
       ${trayBars("How They Vote", "Of '24 voters", methodRows)}
       <div class="chart-tray"><div class="chart-tray-head"><div class="chart-tray-hd">Turnout by Cycle</div><div class="chart-tray-meta">Ballots</div></div><div class="mini-bars">${toBars}</div></div>
       ${trayBars("Signals", "Share of active", [
-        dRow("Unaffiliated", pval(p.id, "unaff"), C.tealLt, `${pval(p.id, "unaff")}%`, 108),
-        dRow("Midterm drop-off", pval(p.id, "dropoff"), C.tealLt, `${pval(p.id, "dropoff")}%`, 108),
-        dRow("New movers", pval(p.id, "newmover"), C.tealLt, `${pval(p.id, "newmover")}%`, 108),
-        dRow("Single-voter homes", pval(p.id, "solo"), C.tealLt, `${pval(p.id, "solo")}%`, 108),
+        dRow("Unaffiliated", pval(p.id, "unaff"), C.repLt, `${pval(p.id, "unaff")}%`, 108),
+        dRow("Midterm drop-off", pval(p.id, "dropoff"), C.repLt, `${pval(p.id, "dropoff")}%`, 108),
+        dRow("New movers", pval(p.id, "newmover"), C.repLt, `${pval(p.id, "newmover")}%`, 108),
+        dRow("Single-voter homes", pval(p.id, "solo"), C.repLt, `${pval(p.id, "solo")}%`, 108),
       ].join(""))}
     </div>`;
 }
@@ -413,7 +413,7 @@ function paintPrecinctMap() {
     },
   }).addTo(precinctMap);
   legend($("#precinct-legend"), "Priority Role",
-    [[C.teal, "Base"], [C.gold, "Turnout"], [C.npa, "Persuasion"]]);
+    [[C.rep, "Base"], [C.gold, "Turnout"], [C.npa, "Persuasion"]]);
 }
 
 /* ════════════════════ VOTERS ════════════════════ */
@@ -496,8 +496,8 @@ function renderVoters() {
     <div class="chart-tray">
       <div class="chart-tray-head"><div class="chart-tray-hd">Who They Are</div><div class="chart-tray-meta">Gender · age</div></div>
       <div class="demo-section" style="padding-top:4px;">
-        <div class="demo-row"><div class="demo-lbl">Women</div><div class="demo-track"><div class="demo-fill" style="width:${womenPct}%;background:${C.tealLt};"></div></div><div class="demo-pct">${womenPct}%</div></div>
-        <div class="demo-row"><div class="demo-lbl">Men</div><div class="demo-track"><div class="demo-fill" style="width:${menPct}%;background:#17707C;"></div></div><div class="demo-pct">${menPct}%</div></div>
+        <div class="demo-row"><div class="demo-lbl">Women</div><div class="demo-track"><div class="demo-fill" style="width:${womenPct}%;background:${C.repLt};"></div></div><div class="demo-pct">${womenPct}%</div></div>
+        <div class="demo-row"><div class="demo-lbl">Men</div><div class="demo-track"><div class="demo-fill" style="width:${menPct}%;background:#7F1D1D;"></div></div><div class="demo-pct">${menPct}%</div></div>
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:11px;border-top:1px solid var(--hairline);">
           <div class="stat-lbl" style="margin:0;">Average age</div><div class="stat-val" style="font-size:22px;">${TG.avg_age}</div>
         </div>
@@ -543,16 +543,16 @@ function renderVoterDetail() {
         <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:var(--ff-display);font-size:10px;letter-spacing:1px;text-transform:uppercase;"><span style="color:var(--npa-lt);">Unaff ${fmt(tp.party.U)}</span><span style="color:var(--rep-lt);">Rep ${fmt(tp.party.R)}</span></div>
       </div>
       ${trayBars("Gender", "Of targets", [
-        dRow("Women", womenPct, C.tealLt, `${womenPct}%`, 64),
-        dRow("Men", menPct, "#17707C", `${menPct}%`, 64),
+        dRow("Women", womenPct, C.repLt, `${womenPct}%`, 64),
+        dRow("Men", menPct, "#7F1D1D", `${menPct}%`, 64),
       ].join(""))}
       ${trayBars("How Reliable", "Of targets", [
         dRow("Locked-in 3–4/4", lockPct, RAMP_T[3], `${lockPct}%`, 108),
         dRow("Rest of universe", restPct, RAMP_T[1], `${restPct}%`, 108),
       ].join(""))}
       <div class="chart-tray"><div class="chart-tray-head"><div class="chart-tray-hd">Turnout Anchor</div><div class="chart-tray-meta">Targets who voted '24</div></div>
-        <div style="display:flex;align-items:baseline;gap:10px;margin-top:12px;"><div style="font-family:var(--ff-display);font-weight:700;font-size:34px;color:var(--teal-lt);font-variant-numeric:tabular-nums;">${fmt(tp.voted_2024)}</div><div class="stat-lbl" style="margin:0;">voted 2024 · ${pct(tp.voted_2024, tp.target)}% of targets</div></div>
-        <div class="demo-track" style="height:8px;margin-top:12px;"><div class="demo-fill" style="width:${pct(tp.voted_2024, tp.target)}%;background:var(--teal);"></div></div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-top:12px;"><div style="font-family:var(--ff-display);font-weight:700;font-size:34px;color:var(--rep-lt);font-variant-numeric:tabular-nums;">${fmt(tp.voted_2024)}</div><div class="stat-lbl" style="margin:0;">voted 2024 · ${pct(tp.voted_2024, tp.target)}% of targets</div></div>
+        <div class="demo-track" style="height:8px;margin-top:12px;"><div class="demo-fill" style="width:${pct(tp.voted_2024, tp.target)}%;background:var(--rep);"></div></div>
       </div>
     </div>`;
 }
@@ -645,7 +645,7 @@ function renderSignalTable() {
   const rows = [...P].sort((a, b) => pval(b.id, signalMetric) - pval(a.id, signalMetric)).map(p => {
     const v = pval(p.id, signalMetric), delta = Math.round((v - PDIST[signalMetric]) * 10) / 10;
     return `<tr><td><b>${p.name}</b><div class="kk">Precinct ${p.id}</div></td><td><b>${v}%</b></td>
-      <td style="color:${delta > 0 ? C.tealLt : delta < 0 ? C.repLt : C.muted}">${signed(delta)} pts</td></tr>`;
+      <td style="color:${delta > 0 ? C.goldLt : delta < 0 ? C.muted : C.muted}">${signed(delta)} pts</td></tr>`;
   }).join("");
   $("#signal-table").innerHTML = `<thead><tr><th>Precinct</th><th>${m.label}</th><th>vs district</th></tr></thead><tbody>${rows}</tbody>`;
 }
@@ -703,7 +703,7 @@ function renderHistory() {
       ${turnout.map(([yr, n], i) => {
     const last = i === 2;
     return `<div class="col"><div class="n" style="font-size:14px;color:${last ? "var(--gold-lt)" : "var(--fg)"}">${fmt(n)}</div>
-        <div class="bar" style="max-width:60px;height:${Math.round(112 * n / maxTO)}px;background:${last ? "var(--gold)" : "var(--teal)"};opacity:${last ? 1 : .85};"></div>
+        <div class="bar" style="max-width:60px;height:${Math.round(112 * n / maxTO)}px;background:${last ? "var(--gold)" : "var(--rep)"};opacity:${last ? 1 : .8};"></div>
         <div class="yr" style="${last ? "color:var(--fg);font-weight:600;" : ""}">${yr}</div></div>`;
   }).join("")}
     </div>

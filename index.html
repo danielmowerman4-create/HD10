@@ -19,7 +19,7 @@
   --border:rgba(255,255,255,0.07); --border-lt:rgba(255,255,255,0.15); --hairline:rgba(255,255,255,0.04);
   --dem:#2563EB; --dem-lt:#60A5FA; --rep:#DC2626; --rep-lt:#F87171; --npa:#7C3AED; --npa-lt:#A78BFA;
   --tint-teal:rgba(26,139,154,.10); --tint-gold:rgba(212,160,23,.10);
-  --surface-tint-teal:rgba(26,139,154,0.07);
+  --surface-tint-teal:rgba(26,139,154,0.07); --surface-tint-red:rgba(220,38,38,0.10);
   --demo-purple:#A78BFA; --demo-green:#34D399; --demo-orange:#FB923C; --demo-amber:#F0B82A;
   --r-xs:2px; --r-sm:3px; --r-md:4px; --r-lg:8px; --r-xl:10px; --r-pill:999px;
   --d-base:160ms; --d-fast:130ms; --d-slow:400ms; --ease:cubic-bezier(.2,.7,.2,1); --ease-out:cubic-bezier(.2,.7,.2,1);
@@ -47,7 +47,7 @@ a{color:inherit}
 .rail-nav{position:relative;flex:1;padding:12px 0;display:flex;flex-direction:column;gap:1px}
 .rail-link{position:relative;display:flex;align-items:center;gap:10px;padding:11px 18px 11px 15px;text-decoration:none;border-left:3px solid transparent;background:none;text-align:left;cursor:pointer;color:var(--fg-muted);font-family:var(--ff-display);font-weight:600;font-size:13px;letter-spacing:2px;text-transform:uppercase;transition:color var(--d-base),background var(--d-base)}
 .rail-link:hover{color:var(--fg);background:rgba(255,255,255,.03)}
-.rail-link.active{border-left-color:var(--gold);background:var(--surface-tint-teal);color:var(--teal-lt)}
+.rail-link.active{border-left-color:var(--rep);background:var(--surface-tint-red);color:var(--rep-lt)}
 .rail-foot{position:relative;padding:14px 18px;border-top:1px solid var(--border)}
 .rail-pill{display:inline-flex;align-items:center;gap:7px;background:rgba(212,160,23,.12);border:1px solid rgba(212,160,23,.28);border-radius:var(--r-xs);padding:5px 11px}
 .rail-pill i{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:blink 2.2s ease infinite}
@@ -62,7 +62,7 @@ a{color:inherit}
 
 /* ══ Page header (shared v2) ══ */
 .phead{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--border);margin-bottom:24px}
-.phead .eyebrow{font-family:var(--ff-display);font-weight:600;font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:var(--teal-lt);margin-bottom:7px}
+.phead .eyebrow{font-family:var(--ff-display);font-weight:600;font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:var(--rep-lt);margin-bottom:7px}
 .phead h1{font-family:var(--ff-display);font-weight:900;font-size:36px;letter-spacing:1px;text-transform:uppercase;line-height:.94}
 .phead .sub{font-size:12px;color:var(--fg-muted);margin-top:8px}
 .phead .right{text-align:right;flex-shrink:0}
@@ -74,7 +74,7 @@ a{color:inherit}
 .t-eyebrow{font-family:var(--ff-display);font-weight:600;font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:var(--fg-muted)}
 .stat-lbl{font-family:var(--ff-display);font-weight:600;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--fg-muted);margin-bottom:4px}
 .stat-val{font-family:var(--ff-display);font-weight:700;font-size:22px;line-height:1;color:var(--fg);font-variant-numeric:tabular-nums}
-.stat-val.teal{color:var(--teal-lt)}.stat-val.gold{color:var(--gold-lt)}.stat-val.dem{color:var(--dem-lt)}.stat-val.rep{color:var(--rep-lt)}.stat-val.npa{color:var(--npa-lt)}
+.stat-val.teal{color:var(--rep-lt)}.stat-val.gold{color:var(--gold-lt)}.stat-val.dem{color:var(--dem-lt)}.stat-val.rep{color:var(--rep-lt)}.stat-val.npa{color:var(--npa-lt)}
 
 /* ══ Chart trays ══ */
 .chart-tray{padding:16px;background:rgba(15,26,44,.5);border:1px solid var(--border);border-radius:var(--r-lg)}
@@ -88,7 +88,7 @@ a{color:inherit}
 .demo-row:last-child{margin-bottom:0}
 .demo-lbl{font-family:var(--ff-display);font-weight:600;font-size:13.5px;width:82px;flex-shrink:0;color:var(--fg-dim)}
 .demo-track{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
-.demo-fill{height:100%;border-radius:4px;background:var(--teal);transition:width var(--d-slow) var(--ease-out)}
+.demo-fill{height:100%;border-radius:4px;background:var(--rep);transition:width var(--d-slow) var(--ease-out)}
 .demo-pct{font-family:var(--ff-display);font-weight:700;font-size:15px;width:48px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--fg)}
 
 /* ══ Party bar ══ */
@@ -242,8 +242,8 @@ table.tbl td b{color:var(--fg);font-family:var(--ff-display);font-weight:700;fon
 </div>
 
 <script src="assets/leaflet.js"></script>
-<script src="data/hd10.js?v=28"></script>
-<script src="data/target.js?v=28"></script>
-<script src="app.js?v=28"></script>
+<script src="data/hd10.js?v=29"></script>
+<script src="data/target.js?v=29"></script>
+<script src="app.js?v=29"></script>
 </body>
 </html>
