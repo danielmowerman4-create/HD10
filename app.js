@@ -57,6 +57,7 @@ const TURNOUT_UNIVERSE = D.win.projected2026;          // ~6,826 projected 2026 
 const OUR_UNIVERSE = TG ? TG.target_size : 0;          // 3,655 likely-voter targets
 const WIN = D.win.win_number;                          // 3,414 to win
 const COVERAGE = WIN ? Math.round(100 * OUR_UNIVERSE / WIN) : 0;
+const CUSHION = OUR_UNIVERSE - WIN;                    // targets above the win number
 const tgPrec = id => (TG && TG.precinct && TG.precinct[id]) || null;
 
 /* ── Election history — REAL precinct-level returns (HD-10 voting districts
@@ -119,7 +120,7 @@ function baseMap(id) {
   const map = L.map(id, { scrollWheelZoom: false, attributionControl: false, zoomControl: true });
   L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", { maxZoom: 19 }).addTo(map);
   L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", { maxZoom: 19, pane: "markerPane", opacity: .7 }).addTo(map);
-  const fit = () => { map.invalidateSize(); map.fitBounds(D.bounds, { padding: [30, 30] }); };
+  const fit = () => { map.invalidateSize(); map.fitBounds(D.bounds, { padding: [18, 18] }); };
   fit(); setTimeout(fit, 140); setTimeout(fit, 440);
   return map;
 }
@@ -139,26 +140,26 @@ function renderOverview() {
     <div class="stripe"></div>
     <div class="hero-left">
       <div class="eyebrow gold">Campaign Assessment</div>
-      <h1>HD-10 is difficult, but winnable with disciplined focus.</h1>
-      <p class="lede">HD-10 is Democratic-leaning, but Republicans have a viable path by working
-        <strong>${fmt(OUR_UNIVERSE)}</strong> targeted voters who are already likely to turn out — concentrated in
-        <strong>${b.name}</strong>, <strong>${t.name}</strong>, and <strong>${p.name}</strong>.</p>
+      <h1>${fmt(WIN)} votes to win HD-10.</h1>
+      <p class="lede">Democratic-leaning, but winnable with disciplined focus. Republicans reach the win
+        number by working <strong>${fmt(OUR_UNIVERSE)}</strong> targeted voters already likely to turn out —
+        concentrated in <strong>${b.name}</strong>, <strong>${t.name}</strong>, and <strong>${p.name}</strong>.</p>
       <div class="glance">
         <div class="cell"><div class="l">Active Voters</div><div class="v num">${fmt(T.active)}</div></div>
         <div class="cell"><div class="l">Turnout Universe</div><div class="v num">${fmt(TURNOUT_UNIVERSE)}</div></div>
-        <div class="cell"><div class="l">Our Targets</div><div class="v num" style="color:${C.tealLt}">${fmt(OUR_UNIVERSE)}</div></div>
+        <div class="cell"><div class="l">Above Win Number</div><div class="v num" style="color:${C.tealLt}">+${fmt(CUSHION)}</div></div>
       </div>
     </div>
     <div class="hero-right">
       <div class="eyebrow">Path to Victory</div>
-      <div class="win-num"><span class="big num">${fmt(WIN)}</span><span class="lbl">Votes<br>To Win</span></div>
-      <div class="win-sub">50% + 1 of <strong>${fmt(TURNOUT_UNIVERSE)}</strong> projected 2026 voters</div>
-      <div class="win-bar"><div class="fill" style="width:50%"></div><div class="tick"></div></div>
-      <div class="win-foot"><span>Win Threshold</span><span>50% + 1</span></div>
+      <div class="win-num"><span class="big num" style="color:${C.tealLt}">${fmt(OUR_UNIVERSE)}</span><span class="lbl">Likely-voter<br>targets</span></div>
+      <div class="win-sub">50% + 1 of <strong>${fmt(TURNOUT_UNIVERSE)}</strong> projected 2026 voters is <strong>${fmt(WIN)}</strong> to win.</div>
+      <div class="win-bar"><div class="fill" style="width:${Math.min(100, pct(WIN, OUR_UNIVERSE))}%"></div><div class="tick"></div></div>
+      <div class="win-foot"><span>${fmt(WIN)} to win</span><span>${fmt(OUR_UNIVERSE)} in universe</span></div>
       <div class="coverage">
-        <div class="cov-top"><span>Our likely-voter universe</span><b class="num" style="color:${C.tealLt}">${fmt(OUR_UNIVERSE)}</b></div>
-        <div class="cov-bar"><i style="width:${Math.min(100, COVERAGE)}%"></i></div>
-        <div class="cov-foot">${COVERAGE}% of the votes needed — every target counts</div>
+        <div class="cov-top"><span>Cushion above the win number</span><b class="num" style="color:${C.tealLt}">+${fmt(CUSHION)}</b></div>
+        <div class="cov-bar"><i style="width:${Math.min(100, Math.round(100 * CUSHION / WIN))}%"></i></div>
+        <div class="cov-foot"><strong>${fmt(CUSHION)}</strong> targets above the line — the margin for slippage if turnout softens.</div>
       </div>
     </div>
   </section>
@@ -172,10 +173,10 @@ function renderOverview() {
     ${planCard("03", roleOf(p), p.name, tgPrec(p.id) ? tgPrec(p.id).target : 0, "likely<br>targets",
       `Highest unaffiliated share at ${p.pct.U}%. Affordability, taxes, and candidate validation carry the message.`)}
   </div>
-  <div class="foot-note"><i></i>Target universe = our voters already likely to vote · ${fmt(OUR_UNIVERSE)} of ${fmt(TURNOUT_UNIVERSE)} projected · Export field packets from the Precincts tab</div>`;
+  <div class="foot-note"><i></i>Target universe = our voters already likely to vote. Export field packets from the Precincts tab.</div>`;
 }
 function planCard(idx, role, title, n, unit, body) {
-  return `<div class="plan-card" style="--accent:${role.color};--accent-lt:${role.colorLt}">
+  return `<div class="plan-card">
     <div class="idx">${idx}</div>
     <div class="k">${role.key}</div>
     <h3>${title}</h3>
@@ -301,7 +302,7 @@ function renderVoters() {
 
   // funnel: where the universe comes from (narrowing), final step emphasized
   const funnel = [
-    [C.demLt, T.active, "All Active Voters", "Every active HD-10 registrant."],
+    [C.muted, T.active, "All Active Voters", "Every active HD-10 registrant."],
     [C.goldLt, TURNOUT_UNIVERSE, "Likely to Vote in 2026", `Projected to cast a ballot — ${pct(TURNOUT_UNIVERSE, T.active)}% of active voters.`],
     [C.tealLt, OUR_UNIVERSE, "Our Targets", `The likely voters we work — ${pct(OUR_UNIVERSE, TURNOUT_UNIVERSE)}% of the 2026 electorate.`],
   ];
@@ -334,10 +335,10 @@ function renderVoters() {
     `<div class="bar"><div class="bar-top"><span>${s.label}</span><b>${fmt(s.n)} · ${s.pct_of_target}%</b></div><div class="track"><i style="width:${s.pct_of_target}%;background:${k === "seg_R" ? "var(--rep-lt)" : "var(--npa-lt)"}"></i></div></div>`).join("");
 
   $("#tab-voters").innerHTML = `
-  <div class="page-head"><h2>Voters</h2><p>Our universe is only the voters we target who are <strong>already likely to vote</strong> — no turnout-lift pool for now. <strong>${fmt(OUR_UNIVERSE)}</strong> people, ${COVERAGE}% of the votes needed to win.</p></div>
+  <div class="page-head"><h2>Voters</h2><p>Our universe is only the voters we target who are <strong>already likely to vote</strong> — no turnout-lift pool for now. <strong>${fmt(OUR_UNIVERSE)}</strong> people — <strong>${fmt(CUSHION)}</strong> above the ${fmt(WIN)} needed to win.</p></div>
 
   <div class="funnel" style="grid-template-columns:repeat(3,1fr)">
-    ${funnel.map(([c, v, l, s], i) => `<div class="funnel-step" style="--accent:${c};--accent-lt:${c}${i === 2 ? ";border-width:1px 1px 1px 1px;box-shadow:0 0 0 1px " + c + " inset" : ""}"><div class="v num">${fmt(v)}</div><div class="l">${l}</div><p>${s}</p></div>`).join("")}
+    ${funnel.map(([c, v, l, s]) => `<div class="funnel-step" style="--accent:${c};--accent-lt:${c}"><div class="v num">${fmt(v)}</div><div class="l">${l}</div><p>${s}</p></div>`).join("")}
   </div>
 
   <div class="sec-head"><h2>How Likely They Are to Vote</h2><div class="note">The three tiers add up to ${fmt(OUR_UNIVERSE)}</div></div>
@@ -552,7 +553,7 @@ function renderFooter() {
 }
 function refit(map) {
   if (!map) return;
-  setTimeout(() => { map.invalidateSize(); map.fitBounds(D.bounds, { padding: [30, 30] }); }, 90);
+  setTimeout(() => { map.invalidateSize(); map.fitBounds(D.bounds, { padding: [18, 18] }); }, 90);
 }
 function wireTabs() {
   $$(".tab").forEach(tab => {
