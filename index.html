@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>HD10 Command Center</title>
+<title>DM Strategies · HD-10</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Outfit:wght@300;400;500;600&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -40,10 +40,10 @@ a{color:inherit}
 .shell{display:flex;height:100vh;width:100%}
 .rail{width:212px;min-width:212px;background:var(--navy-mid);border-right:1px solid var(--border);position:relative;display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .rail .stripe{position:absolute;inset:0;background:repeating-linear-gradient(108deg,transparent,transparent 28px,rgba(26,139,154,.045) 28px,rgba(26,139,154,.045) 30px);pointer-events:none}
-.rail-top{position:relative;padding:18px 18px 16px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--border)}
-.rail-mark{width:32px;height:32px;border:2px solid var(--gold);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-family:var(--ff-display);font-weight:900;font-size:15px;color:var(--gold-lt)}
-.rail-brand .b1{font-family:var(--ff-display);font-weight:700;font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--fg);line-height:1}
-.rail-brand .b2{font-family:var(--ff-display);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--fg-muted);margin-top:3px;line-height:1}
+.rail-top{position:relative;padding:18px 16px 16px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--border)}
+.rail-logo{height:46px;width:auto;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(210,177,110,.18))}
+.rail-brand .b1{font-family:Georgia,'Times New Roman',serif;font-size:16px;letter-spacing:-.2px;color:#F4F1E8;line-height:1.05;white-space:nowrap}
+.rail-brand .b2{font-family:var(--ff-display);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--fg-muted);margin-top:5px;line-height:1}
 .rail-nav{position:relative;flex:1;padding:12px 0;display:flex;flex-direction:column;gap:1px}
 .rail-link{position:relative;display:flex;align-items:center;gap:10px;padding:11px 18px 11px 15px;text-decoration:none;border-left:3px solid transparent;background:none;text-align:left;cursor:pointer;color:var(--fg-muted);font-family:var(--ff-display);font-weight:600;font-size:13px;letter-spacing:2px;text-transform:uppercase;transition:color var(--d-base),background var(--d-base)}
 .rail-link:hover{color:var(--fg);background:rgba(255,255,255,.03)}
@@ -86,14 +86,14 @@ a{color:inherit}
 .demo-section{padding:6px 0}
 .demo-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .demo-row:last-child{margin-bottom:0}
-.demo-lbl{font-family:var(--ff-display);font-weight:600;font-size:12px;width:74px;flex-shrink:0;color:var(--fg-dim)}
-.demo-track{flex:1;height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
+.demo-lbl{font-family:var(--ff-display);font-weight:600;font-size:13.5px;width:82px;flex-shrink:0;color:var(--fg-dim)}
+.demo-track{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
 .demo-fill{height:100%;border-radius:4px;background:var(--teal);transition:width var(--d-slow) var(--ease-out)}
-.demo-pct{font-family:var(--ff-display);font-weight:700;font-size:12px;width:38px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--fg)}
+.demo-pct{font-family:var(--ff-display);font-weight:700;font-size:15px;width:48px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--fg)}
 
 /* ══ Party bar ══ */
 .party-bar-track{display:flex;height:26px;border-radius:var(--r-md);overflow:hidden;background:#0F1A2C}
-.party-bar-track > div{display:flex;align-items:center;justify-content:center;font-family:var(--ff-display);font-weight:700;font-size:11px;letter-spacing:.5px;color:#fff;white-space:nowrap}
+.party-bar-track > div{display:flex;align-items:center;justify-content:center;font-family:var(--ff-display);font-weight:700;font-size:12.5px;letter-spacing:.5px;color:#fff;white-space:nowrap}
 .pb-d{background:var(--dem)}.pb-r{background:var(--rep)}.pb-n{background:var(--npa);opacity:.85}
 
 /* ══ Margin pill ══ */
@@ -205,10 +205,17 @@ table.tbl td b{color:var(--fg);font-family:var(--ff-display);font-weight:700;fon
   <nav class="rail" aria-label="Main sections">
     <div class="stripe"></div>
     <div class="rail-top">
-      <div class="rail-mark">10</div>
+      <svg class="rail-logo" viewBox="32 14 136 166" height="46" role="img" aria-label="DM Strategies" xmlns="http://www.w3.org/2000/svg">
+        <g transform="translate(100 125)">
+          <g stroke="#D2B16E" stroke-width="2.4" stroke-linecap="round" fill="none">
+            <line x1="0" y1="-50" x2="-66" y2="-76"/><line x1="0" y1="-50" x2="-36" y2="-94"/><line x1="0" y1="-50" x2="0" y2="-106"/><line x1="0" y1="-50" x2="36" y2="-94"/><line x1="0" y1="-50" x2="66" y2="-76"/>
+          </g>
+          <path d="M -5 -58 L 5 -58 L 0 -65 Z" fill="#F4F1E8"/><rect x="-8" y="-58" width="16" height="10" fill="#F4F1E8"/><rect x="-13" y="-48" width="26" height="3" fill="#F4F1E8"/><polygon points="-10,-45 10,-45 19,48 -19,48" fill="#F4F1E8"/><rect x="-16" y="6" width="32" height="3.5" fill="#0F2F2A"/>
+        </g>
+      </svg>
       <div class="rail-brand">
-        <div class="b1">HD10</div>
-        <div class="b2">Command</div>
+        <div class="b1">DM Strategies</div>
+        <div class="b2">HD-10 · East Hartford</div>
       </div>
     </div>
     <div class="rail-nav">
@@ -235,8 +242,8 @@ table.tbl td b{color:var(--fg);font-family:var(--ff-display);font-weight:700;fon
 </div>
 
 <script src="assets/leaflet.js"></script>
-<script src="data/hd10.js?v=27"></script>
-<script src="data/target.js?v=27"></script>
-<script src="app.js?v=27"></script>
+<script src="data/hd10.js?v=28"></script>
+<script src="data/target.js?v=28"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>

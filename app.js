@@ -436,10 +436,6 @@ function renderVoters() {
     ["New movers", ut.low.n, ut.low.pct, RAMP_T[1]],
   ];
 
-  // Real overlapping messaging hooks — flat teal (label carries the meaning).
-  const hooks = Object.entries(TG.segments).sort((a, b) => b[1].n - a[1].n)
-    .map(([k, s]) => [s.label, s.n, s.pct_of_target, C.tealLt]);
-
   // Real target density by precinct (role-colored).
   const precs = Object.entries(TG.precinct).map(([id, v]) => ({ id, ...v, role: roleOf(pById(id)) }))
     .sort((a, b) => b.target - a.target);
@@ -488,12 +484,12 @@ function renderVoters() {
     </aside>
   </div>
 
-  <div class="sec-head"><h2>The Universe</h2><div class="note">${fmt(OUR_UNIVERSE)} targets · propensity, demographics, hooks</div></div>
+  <div class="sec-head"><h2>The Universe</h2><div class="note">${fmt(OUR_UNIVERSE)} targets · propensity &amp; demographics</div></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
     <div class="chart-tray">
       <div class="chart-tray-head"><div class="chart-tray-hd">Vote Propensity</div><div class="chart-tray-meta">Of targets</div></div>
       <div class="demo-section" style="padding-top:4px;">
-        ${tiers.map(([l, n, p, c]) => `<div class="demo-row"><div class="demo-lbl" style="width:110px;">${l}</div><div class="demo-track"><div class="demo-fill" style="width:${p}%;background:${c};"></div></div><div class="demo-pct">${p}%</div></div>`).join("")}
+        ${tiers.map(([l, n, p, c]) => `<div class="demo-row"><div class="demo-lbl" style="width:130px;">${l}</div><div class="demo-track"><div class="demo-fill" style="width:${p}%;background:${c};"></div></div><div class="demo-pct">${p}%</div></div>`).join("")}
         <div style="font-size:10px;color:var(--fg-muted);margin-top:10px;line-height:1.5;">Universe excludes 0–1-of-4 voters — targets already turn out.</div>
       </div>
     </div>
@@ -506,13 +502,6 @@ function renderVoters() {
           <div class="stat-lbl" style="margin:0;">Average age</div><div class="stat-val" style="font-size:22px;">${TG.avg_age}</div>
         </div>
       </div>
-    </div>
-  </div>
-
-  <div class="chart-tray" style="margin-top:16px;">
-    <div class="chart-tray-head"><div class="chart-tray-hd">Messaging Hooks</div><div class="chart-tray-meta">Overlapping · a voter can fit several</div></div>
-    <div class="demo-section" style="padding-top:4px;">
-      ${hooks.map(([l, n, p, c]) => `<div class="demo-row"><div class="demo-lbl" style="width:auto;flex:1;font-weight:500;font-size:11.5px;color:var(--fg-dim);">${l}</div><div class="demo-track" style="max-width:180px;"><div class="demo-fill" style="width:${p}%;background:${c};"></div></div><div class="demo-pct" style="width:74px;">${fmt(n)}·${p}%</div></div>`).join("")}
     </div>
   </div>
 
