@@ -24,11 +24,12 @@ const C = {
   dem: "#2563EB", demLt: "#60A5FA",
   muted: "#6B87A3",
 };
-// Single-hue red ramp (light → deep) for ordered categories — the GOP brand
-// accent for generic data viz. Gold is the patriotic secondary/emphasis; party
-// (blue/red/purple) and role colors stay semantic.
-const RAMP_T = ["#F4B6B3", "#E67E78", "#D23B32", "#9E211A"];
-const rampN = (i, n) => RAMP_T[Math.min(RAMP_T.length - 1, Math.round(i * (RAMP_T.length - 1) / Math.max(1, n - 1)))];
+// Categorical bar palette — one fixed, repeatable scheme reused across every
+// table (row 1 red, 2 gold, 3 slate, 4 gray). Brand red leads; muted, harmonious
+// tones so a chart isn't a wall of red. Party/role colors stay semantic.
+const PAL = ["#C6403A", "#D8A32C", "#5C7C9E", "#8A94A3"];
+const pal = i => PAL[i % PAL.length];
+const PAL_MUTE = "#5C7C9E"; // slate — neutral bars (e.g. past turnout cycles)
 
 /* ── Roles (data-derived) ───────────────────────────────── */
 const byR = [...P].sort((a, b) => b.pct.R - a.pct.R);
@@ -345,19 +346,19 @@ function renderPrecinctDetail() {
   const brOrder = [["young", "18–34"], ["parent", "35–54"], ["mid", "55–64"], ["senior", "65+"]];
   const brTot = brOrder.reduce((s, [k]) => s + p.br[k].n, 0);
   const ageRows = brOrder.map(([k, lbl], i) =>
-    dRow(lbl, 100 * p.br[k].n / brTot, RAMP_T[i], `${Math.round(100 * p.br[k].n / brTot)}%`, 56)).join("");
+    dRow(lbl, 100 * p.br[k].n / brTot, pal(i), `${Math.round(100 * p.br[k].n / brTot)}%`, 56)).join("");
 
   // Vote propensity (real tiers) — prime deepest, unlikely lightest
   const tOrder = [["prime", "Prime · 4/4"], ["likely", "Likely · 3/4"], ["dropoff", "Drop-off"], ["unlikely", "Unlikely"]];
   const tTot = tOrder.reduce((s, [k]) => s + p.tiers[k].n, 0);
   const propRows = tOrder.map(([k, lbl], i) =>
-    dRow(lbl, 100 * p.tiers[k].n / tTot, RAMP_T[3 - i], `${Math.round(100 * p.tiers[k].n / tTot)}%`, 96)).join("");
+    dRow(lbl, 100 * p.tiers[k].n / tTot, pal(i), `${Math.round(100 * p.tiers[k].n / tTot)}%`, 96)).join("");
 
   // How they vote (method — % of 2024 voters)
   const methodRows = [
-    dRow("Election Day", pval(p.id, "eday"), RAMP_T[3], `${pval(p.id, "eday")}%`, 108),
-    dRow("Early in-person", pval(p.id, "early"), RAMP_T[2], `${pval(p.id, "early")}%`, 108),
-    dRow("Absentee / mail", pval(p.id, "vbm"), RAMP_T[1], `${pval(p.id, "vbm")}%`, 108),
+    dRow("Election Day", pval(p.id, "eday"), pal(0), `${pval(p.id, "eday")}%`, 108),
+    dRow("Early in-person", pval(p.id, "early"), pal(1), `${pval(p.id, "early")}%`, 108),
+    dRow("Absentee / mail", pval(p.id, "vbm"), pal(2), `${pval(p.id, "vbm")}%`, 108),
   ].join("");
 
   // Turnout by cycle
@@ -365,7 +366,7 @@ function renderPrecinctDetail() {
   const toBars = [["2018", th.y2018], ["2022", th.y2022], ["2024", th.y2024]].map(([yr, n], i) => {
     const last = i === 2;
     return `<div class="col"><div class="n" style="color:${last ? "var(--gold-lt)" : "var(--fg)"}">${fmt(n)}</div>
-      <div class="bar" style="height:${Math.round(88 * n / thMax)}px;background:${last ? "var(--gold)" : "var(--rep)"};opacity:${last ? 1 : .8};"></div>
+      <div class="bar" style="height:${Math.round(88 * n / thMax)}px;background:${last ? "var(--gold)" : PAL_MUTE};opacity:${last ? 1 : .9};"></div>
       <div class="yr" style="${last ? "color:var(--fg);font-weight:600;" : ""}">${yr}</div></div>`;
   }).join("");
 
@@ -389,10 +390,10 @@ function renderPrecinctDetail() {
       ${trayBars("How They Vote", "Of '24 voters", methodRows)}
       <div class="chart-tray"><div class="chart-tray-head"><div class="chart-tray-hd">Turnout by Cycle</div><div class="chart-tray-meta">Ballots</div></div><div class="mini-bars">${toBars}</div></div>
       ${trayBars("Signals", "Share of active", [
-        dRow("Unaffiliated", pval(p.id, "unaff"), C.repLt, `${pval(p.id, "unaff")}%`, 108),
-        dRow("Midterm drop-off", pval(p.id, "dropoff"), C.repLt, `${pval(p.id, "dropoff")}%`, 108),
-        dRow("New movers", pval(p.id, "newmover"), C.repLt, `${pval(p.id, "newmover")}%`, 108),
-        dRow("Single-voter homes", pval(p.id, "solo"), C.repLt, `${pval(p.id, "solo")}%`, 108),
+        dRow("Unaffiliated", pval(p.id, "unaff"), pal(0), `${pval(p.id, "unaff")}%`, 108),
+        dRow("Midterm drop-off", pval(p.id, "dropoff"), pal(1), `${pval(p.id, "dropoff")}%`, 108),
+        dRow("New movers", pval(p.id, "newmover"), pal(2), `${pval(p.id, "newmover")}%`, 108),
+        dRow("Single-voter homes", pval(p.id, "solo"), pal(3), `${pval(p.id, "solo")}%`, 108),
       ].join(""))}
     </div>`;
 }
@@ -431,9 +432,9 @@ function renderVoters() {
 
   // Real vote-propensity tiers (sum to the universe) — single teal ramp.
   const tiers = [
-    ["Reliable · 3–4 of 4", ut.locked.n, ut.locked.pct, RAMP_T[3]],
-    ["Likely · 2 of 4", ut.mid.n, ut.mid.pct, RAMP_T[2]],
-    ["New movers", ut.low.n, ut.low.pct, RAMP_T[1]],
+    ["Reliable · 3–4 of 4", ut.locked.n, ut.locked.pct, pal(0)],
+    ["Likely · 2 of 4", ut.mid.n, ut.mid.pct, pal(1)],
+    ["New movers", ut.low.n, ut.low.pct, pal(2)],
   ];
 
   // Real target density by precinct (role-colored).
@@ -496,8 +497,8 @@ function renderVoters() {
     <div class="chart-tray">
       <div class="chart-tray-head"><div class="chart-tray-hd">Who They Are</div><div class="chart-tray-meta">Gender · age</div></div>
       <div class="demo-section" style="padding-top:4px;">
-        <div class="demo-row"><div class="demo-lbl">Women</div><div class="demo-track"><div class="demo-fill" style="width:${womenPct}%;background:${C.repLt};"></div></div><div class="demo-pct">${womenPct}%</div></div>
-        <div class="demo-row"><div class="demo-lbl">Men</div><div class="demo-track"><div class="demo-fill" style="width:${menPct}%;background:#7F1D1D;"></div></div><div class="demo-pct">${menPct}%</div></div>
+        <div class="demo-row"><div class="demo-lbl">Women</div><div class="demo-track"><div class="demo-fill" style="width:${womenPct}%;background:${pal(0)};"></div></div><div class="demo-pct">${womenPct}%</div></div>
+        <div class="demo-row"><div class="demo-lbl">Men</div><div class="demo-track"><div class="demo-fill" style="width:${menPct}%;background:${pal(1)};"></div></div><div class="demo-pct">${menPct}%</div></div>
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:11px;border-top:1px solid var(--hairline);">
           <div class="stat-lbl" style="margin:0;">Average age</div><div class="stat-val" style="font-size:22px;">${TG.avg_age}</div>
         </div>
@@ -543,12 +544,12 @@ function renderVoterDetail() {
         <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:var(--ff-display);font-size:10px;letter-spacing:1px;text-transform:uppercase;"><span style="color:var(--npa-lt);">Unaff ${fmt(tp.party.U)}</span><span style="color:var(--rep-lt);">Rep ${fmt(tp.party.R)}</span></div>
       </div>
       ${trayBars("Gender", "Of targets", [
-        dRow("Women", womenPct, C.repLt, `${womenPct}%`, 64),
-        dRow("Men", menPct, "#7F1D1D", `${menPct}%`, 64),
+        dRow("Women", womenPct, pal(0), `${womenPct}%`, 64),
+        dRow("Men", menPct, pal(1), `${menPct}%`, 64),
       ].join(""))}
       ${trayBars("How Reliable", "Of targets", [
-        dRow("Locked-in 3–4/4", lockPct, RAMP_T[3], `${lockPct}%`, 108),
-        dRow("Rest of universe", restPct, RAMP_T[1], `${restPct}%`, 108),
+        dRow("Locked-in 3–4/4", lockPct, pal(0), `${lockPct}%`, 108),
+        dRow("Rest of universe", restPct, pal(1), `${restPct}%`, 108),
       ].join(""))}
       <div class="chart-tray"><div class="chart-tray-head"><div class="chart-tray-hd">Turnout Anchor</div><div class="chart-tray-meta">Targets who voted '24</div></div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-top:12px;"><div style="font-family:var(--ff-display);font-weight:700;font-size:34px;color:var(--rep-lt);font-variant-numeric:tabular-nums;">${fmt(tp.voted_2024)}</div><div class="stat-lbl" style="margin:0;">voted 2024 · ${pct(tp.voted_2024, tp.target)}% of targets</div></div>
@@ -703,7 +704,7 @@ function renderHistory() {
       ${turnout.map(([yr, n], i) => {
     const last = i === 2;
     return `<div class="col"><div class="n" style="font-size:14px;color:${last ? "var(--gold-lt)" : "var(--fg)"}">${fmt(n)}</div>
-        <div class="bar" style="max-width:60px;height:${Math.round(112 * n / maxTO)}px;background:${last ? "var(--gold)" : "var(--rep)"};opacity:${last ? 1 : .8};"></div>
+        <div class="bar" style="max-width:60px;height:${Math.round(112 * n / maxTO)}px;background:${last ? "var(--gold)" : PAL_MUTE};opacity:${last ? 1 : .9};"></div>
         <div class="yr" style="${last ? "color:var(--fg);font-weight:600;" : ""}">${yr}</div></div>`;
   }).join("")}
     </div>
